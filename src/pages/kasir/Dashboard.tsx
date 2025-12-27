@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { MobileLayout } from '@/components/layout/MobileLayout';
-import { MobileStatCard } from '@/components/dashboard/MobileStatCard';
-import { MobileActionButton } from '@/components/ui/MobileActionButton';
-import { MobileCard } from '@/components/ui/MobileCard';
-import { MobileStatusBadge } from '@/components/ui/MobileStatusBadge';
+import { MainLayout } from '@/components/layout/MainLayout';
+import { StatCard } from '@/components/dashboard/StatCard';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -17,7 +16,11 @@ import {
   Loader2,
   AlertTriangle,
   RefreshCw,
+  Eye,
+  ArrowRight,
 } from 'lucide-react';
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 
 interface DashboardStats {
   ordersToday: number;
@@ -114,180 +117,214 @@ export default function KasirDashboard() {
     }).format(amount);
   };
 
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, any> = {
+      diterima: 'pending',
+      diproses: 'processing',
+      qc: 'processing',
+      selesai: 'ready',
+      diambil: 'completed',
+    };
+    return variants[status] || 'default';
+  };
+
+  const getStatusLabel = (status: string): string => {
+    const labels: Record<string, string> = {
+      diterima: 'Diterima',
+      diproses: 'Diproses',
+      qc: 'QC',
+      selesai: 'Selesai',
+      diambil: 'Diambil',
+    };
+    return labels[status] || status;
+  };
+
   if (isLoading) {
     return (
-      <MobileLayout title="Dashboard" role="kasir">
+      <MainLayout title="Dashboard">
         <div className="flex flex-col items-center justify-center h-64 gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-muted-foreground text-lg">Memuat data...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Memuat data...</p>
         </div>
-      </MobileLayout>
+      </MainLayout>
     );
   }
 
   if (error) {
     return (
-      <MobileLayout title="Dashboard" role="kasir">
-        <div className="flex flex-col items-center justify-center h-64 gap-6 p-6">
-          <AlertTriangle className="h-16 w-16 text-destructive" />
-          <p className="text-destructive font-semibold text-lg text-center">{error}</p>
-          <MobileActionButton onClick={fetchDashboardData} variant="primary" size="lg">
-            <RefreshCw className="h-5 w-5" />
+      <MainLayout title="Dashboard">
+        <div className="flex flex-col items-center justify-center h-64 gap-4">
+          <AlertTriangle className="h-12 w-12 text-destructive" />
+          <p className="text-destructive font-medium">{error}</p>
+          <Button onClick={fetchDashboardData} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
             Coba Lagi
-          </MobileActionButton>
+          </Button>
         </div>
-      </MobileLayout>
+      </MainLayout>
     );
   }
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.05 },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 },
-  };
-
   return (
-    <MobileLayout title="Dashboard" role="kasir">
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="space-y-6"
-      >
-        {/* Greeting */}
-        <motion.div variants={itemVariants} className="pt-2">
-          <h2 className="text-2xl font-bold text-foreground">
-            Halo, {displayName} 👋
-          </h2>
-          <p className="text-muted-foreground text-base mt-1">
-            Siap melayani pelanggan hari ini
-          </p>
-        </motion.div>
-
-        {/* Primary CTA - New Transaction */}
-        <motion.div variants={itemVariants}>
-          <MobileActionButton 
-            onClick={() => navigate('/kasir/transaksi-baru')}
-            variant="primary"
-            size="xl"
-          >
-            <Plus className="h-6 w-6" />
-            Transaksi Baru
-          </MobileActionButton>
-        </motion.div>
-
-        {/* Secondary CTA - Pickup */}
-        <motion.div variants={itemVariants}>
-          <MobileActionButton 
-            onClick={() => navigate('/kasir/pengambilan')}
-            variant="outline"
+    <MainLayout title="Dashboard">
+      <div className="space-y-6">
+        {/* Greeting + CTA */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-foreground">
+              Halo, {displayName} 👋
+            </h2>
+            <p className="text-muted-foreground mt-1">
+              Siap melayani pelanggan hari ini
+            </p>
+          </div>
+          <Button 
             size="lg"
+            onClick={() => navigate('/kasir/transaksi-baru')}
           >
-            <Package className="h-5 w-5" />
-            Ambil Laundry ({stats.readyOrders})
-          </MobileActionButton>
-        </motion.div>
+            <Plus className="h-5 w-5 mr-2" />
+            Transaksi Baru
+          </Button>
+        </div>
 
-        {/* Stats Grid 2x2 */}
-        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
-          <MobileStatCard
+        {/* Stats Grid - 4 columns on desktop */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
             title="Order Hari Ini"
             value={stats.ordersToday}
             subtitle="transaksi"
-            icon={<ShoppingCart className="h-6 w-6" />}
+            icon={<ShoppingCart className="h-5 w-5" />}
             variant="primary"
-            onClick={() => navigate('/kasir/daftar-transaksi')}
           />
-          <MobileStatCard
+          <StatCard
             title="Uang Masuk"
             value={formatCurrency(stats.revenueToday)}
             subtitle="hari ini"
-            icon={<TrendingUp className="h-6 w-6" />}
+            icon={<TrendingUp className="h-5 w-5" />}
             variant="success"
           />
-        </motion.div>
+          <StatCard
+            title="Siap Diambil"
+            value={stats.readyOrders}
+            subtitle="order"
+            icon={<Package className="h-5 w-5" />}
+            variant="info"
+          />
+          <StatCard
+            title="Belum Lunas"
+            value={stats.unpaidOrders}
+            subtitle="order"
+            icon={<CreditCard className="h-5 w-5" />}
+            variant="warning"
+          />
+        </div>
 
-        {/* Quick Status Cards */}
-        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
-          <MobileCard onClick={() => navigate('/kasir/pengambilan')} showArrow>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-success/20">
-                <Package className="h-5 w-5 text-success" />
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow" 
+            onClick={() => navigate('/kasir/pengambilan')}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-success/20">
+                  <Package className="h-6 w-6 text-success" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-foreground">Pengambilan</p>
+                  <p className="text-sm text-muted-foreground">{stats.readyOrders} siap diambil</p>
+                </div>
+                <ArrowRight className="h-5 w-5 text-muted-foreground" />
               </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{stats.readyOrders}</p>
-                <p className="text-xs text-muted-foreground">Siap Ambil</p>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow" 
+            onClick={() => navigate('/kasir/daftar-transaksi')}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/20">
+                  <ShoppingCart className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-foreground">Daftar Transaksi</p>
+                  <p className="text-sm text-muted-foreground">Lihat semua order</p>
+                </div>
+                <ArrowRight className="h-5 w-5 text-muted-foreground" />
               </div>
-            </div>
-          </MobileCard>
-          <MobileCard onClick={() => navigate('/kasir/daftar-transaksi?status=belum_lunas')} showArrow>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-warning/20">
-                <CreditCard className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{stats.unpaidOrders}</p>
-                <p className="text-xs text-muted-foreground">Belum Lunas</p>
-              </div>
-            </div>
-          </MobileCard>
-        </motion.div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Recent Transactions */}
-        <motion.div variants={itemVariants}>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold text-foreground">Transaksi Terbaru</h3>
-            <button 
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Transaksi Terbaru</CardTitle>
+            <Button 
+              variant="ghost" 
+              size="sm"
               onClick={() => navigate('/kasir/daftar-transaksi')}
-              className="text-primary font-medium text-sm active:opacity-70"
             >
               Lihat Semua
-            </button>
-          </div>
-          
-          <div className="space-y-3">
+              <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          </CardHeader>
+          <CardContent>
             {recentTransactions.length === 0 ? (
-              <MobileCard>
-                <div className="text-center py-6">
-                  <ShoppingCart className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="text-muted-foreground font-medium">Belum ada transaksi</p>
-                  <p className="text-sm text-muted-foreground/70 mt-1">
-                    Tekan tombol + untuk membuat transaksi baru
-                  </p>
-                </div>
-              </MobileCard>
+              <div className="text-center py-8">
+                <ShoppingCart className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-muted-foreground">Belum ada transaksi</p>
+                <p className="text-sm text-muted-foreground/70 mt-1">
+                  Tekan tombol "Transaksi Baru" untuk membuat order
+                </p>
+              </div>
             ) : (
-              recentTransactions.map((trans) => (
-                <MobileCard 
-                  key={trans.id} 
-                  onClick={() => navigate(`/kasir/daftar-transaksi?id=${trans.id}`)}
-                  showArrow
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-foreground truncate">{trans.invoice_number}</p>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {trans.customers?.name || 'Walk-in'}
-                      </p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="font-bold text-foreground">{formatCurrency(Number(trans.total_amount))}</p>
-                      <MobileStatusBadge status={trans.status} size="sm" />
-                    </div>
-                  </div>
-                </MobileCard>
-              ))
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-muted/50 border-b">
+                    <tr>
+                      <th className="text-left p-3 font-medium text-sm">Invoice</th>
+                      <th className="text-left p-3 font-medium text-sm">Customer</th>
+                      <th className="text-left p-3 font-medium text-sm">Total</th>
+                      <th className="text-left p-3 font-medium text-sm">Status</th>
+                      <th className="text-left p-3 font-medium text-sm">Waktu</th>
+                      <th className="text-left p-3 font-medium text-sm">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {recentTransactions.map((trans) => (
+                      <tr key={trans.id} className="hover:bg-muted/50">
+                        <td className="p-3 font-medium">{trans.invoice_number}</td>
+                        <td className="p-3">{trans.customers?.name || 'Walk-in'}</td>
+                        <td className="p-3 font-semibold">{formatCurrency(Number(trans.total_amount))}</td>
+                        <td className="p-3">
+                          <Badge variant={getStatusBadge(trans.status) as any}>
+                            {getStatusLabel(trans.status)}
+                          </Badge>
+                        </td>
+                        <td className="p-3 text-sm text-muted-foreground">
+                          {format(new Date(trans.created_at), 'HH:mm', { locale: id })}
+                        </td>
+                        <td className="p-3">
+                          <Button 
+                            size="icon-sm" 
+                            variant="ghost"
+                            onClick={() => navigate(`/kasir/daftar-transaksi?id=${trans.id}`)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
-          </div>
-        </motion.div>
-      </motion.div>
-    </MobileLayout>
+          </CardContent>
+        </Card>
+      </div>
+    </MainLayout>
   );
 }
