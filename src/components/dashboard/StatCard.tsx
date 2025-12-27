@@ -21,12 +21,12 @@ interface StatCardProps {
 }
 
 const variantStyles = {
-  default: 'bg-card',
-  primary: 'bg-primary-light border-primary/20',
-  success: 'bg-success-light border-success/20',
-  warning: 'bg-warning-light border-warning/20',
-  info: 'bg-info-light border-info/20',
-  danger: 'bg-destructive/10 border-destructive/20',
+  default: 'bg-card border border-border',
+  primary: 'bg-card border border-primary/30',
+  success: 'bg-card border border-success/30',
+  warning: 'bg-card border border-warning/30',
+  info: 'bg-card border border-info/30',
+  danger: 'bg-card border border-destructive/30',
 };
 
 const iconVariantStyles = {
