@@ -1,0 +1,432 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@layer base {
+  :root {
+    /* ============================================
+       TROPICAL PREMIUM THEME - LIGHT MODE
+       Resort vibes with emerald & ocean
+       ============================================ */
+
+    /* Primary - Emerald Green (Trust & Nature) */
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 160 84% 94%;
+    --primary-dark: 160 84% 28%;
+
+    /* Secondary - Ocean Blue */
+    --secondary: 199 89% 48%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Tertiary - Sand Cream */
+    --tertiary: 39 77% 83%;
+    --tertiary-foreground: 39 40% 25%;
+
+    /* Gold Accent */
+    --gold: 43 74% 49%;
+    --gold-foreground: 0 0% 100%;
+
+    /* Success */
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    --success-light: 160 84% 94%;
+
+    /* Warning */
+    --warning: 43 74% 49%;
+    --warning-foreground: 0 0% 100%;
+    --warning-light: 43 74% 94%;
+
+    /* Danger */
+    --danger: 0 72% 51%;
+    --danger-foreground: 0 0% 100%;
+    --danger-light: 0 72% 95%;
+
+    /* Info */
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+    --info-light: 199 89% 94%;
+
+    /* Backgrounds - Soft cream/white */
+    --background: 40 33% 98%;
+    --foreground: 200 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 200 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 200 25% 15%;
+
+    /* Muted */
+    --muted: 40 20% 95%;
+    --muted-foreground: 200 16% 47%;
+
+    /* Accent */
+    --accent: 160 84% 94%;
+    --accent-foreground: 160 84% 28%;
+
+    /* Destructive */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Border & Input */
+    --border: 40 20% 88%;
+    --input: 40 20% 88%;
+    --ring: 160 84% 39%;
+
+    --radius: 0.75rem;
+
+    /* Sidebar */
+    --sidebar-background: 200 25% 12%;
+    --sidebar-foreground: 40 20% 90%;
+    --sidebar-primary: 160 84% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 200 25% 18%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 200 25% 20%;
+    --sidebar-ring: 160 84% 50%;
+    --sidebar-muted: 200 20% 40%;
+
+    /* Premium Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(160, 84%, 39%) 0%, hsl(199, 89%, 48%) 100%);
+    --gradient-ocean: linear-gradient(135deg, hsl(199, 89%, 48%) 0%, hsl(160, 84%, 39%) 100%);
+    --gradient-sunset: linear-gradient(180deg, hsl(39, 77%, 83%) 0%, hsl(199, 89%, 65%) 50%, hsl(160, 84%, 39%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(43, 74%, 49%) 0%, hsl(39, 77%, 63%) 100%);
+    --gradient-card: linear-gradient(135deg, hsl(0, 0%, 100%) 0%, hsl(40, 33%, 98%) 100%);
+    --gradient-sidebar: linear-gradient(180deg, hsl(200, 25%, 15%) 0%, hsl(200, 25%, 10%) 100%);
+    --gradient-tropical: linear-gradient(180deg, hsl(199, 89%, 70%) 0%, hsl(160, 84%, 50%) 100%);
+
+    /* Landing page gradients */
+    --gradient-hero-light: linear-gradient(180deg, 
+      hsl(199, 89%, 92%) 0%, 
+      hsl(160, 84%, 95%) 40%, 
+      hsl(39, 77%, 95%) 100%
+    );
+
+    /* Premium Shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(200 25% 15% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(200 25% 15% / 0.08), 0 2px 4px -2px hsl(200 25% 15% / 0.05);
+    --shadow-lg: 0 10px 15px -3px hsl(200 25% 15% / 0.08), 0 4px 6px -4px hsl(200 25% 15% / 0.05);
+    --shadow-card: 0 4px 20px -4px hsl(200 25% 15% / 0.1);
+    --shadow-elevated: 0 20px 40px -8px hsl(200 25% 15% / 0.15);
+    --shadow-glow-primary: 0 0 40px hsl(160 84% 39% / 0.3);
+    --shadow-glow-ocean: 0 0 40px hsl(199 89% 48% / 0.3);
+  }
+
+  .dark {
+    /* ============================================
+       TROPICAL PREMIUM THEME - DARK MODE
+       Luxury sunset / twilight resort
+       ============================================ */
+
+    --background: 220 30% 8%;
+    --foreground: 40 20% 95%;
+
+    --card: 220 25% 12%;
+    --card-foreground: 40 20% 95%;
+
+    --popover: 220 25% 12%;
+    --popover-foreground: 40 20% 95%;
+
+    /* Primary stays emerald but brighter */
+    --primary: 160 70% 45%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 160 70% 20%;
+    --primary-dark: 160 70% 60%;
+
+    /* Secondary - Ocean brighter */
+    --secondary: 199 80% 55%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Gold for accents */
+    --gold: 43 74% 55%;
+
+    --muted: 220 25% 16%;
+    --muted-foreground: 220 16% 55%;
+
+    --accent: 270 50% 25%;
+    --accent-foreground: 270 60% 85%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 25% 18%;
+    --input: 220 25% 18%;
+    --ring: 160 70% 45%;
+
+    --sidebar-background: 220 30% 6%;
+    --sidebar-foreground: 40 20% 85%;
+    --sidebar-accent: 220 25% 12%;
+    --sidebar-border: 220 25% 14%;
+
+    /* Dark mode gradients - Sunset/twilight */
+    --gradient-primary: linear-gradient(135deg, hsl(160, 70%, 45%) 0%, hsl(199, 80%, 55%) 100%);
+    --gradient-hero-dark: linear-gradient(180deg, 
+      hsl(270, 50%, 15%) 0%, 
+      hsl(220, 60%, 12%) 40%, 
+      hsl(200, 40%, 10%) 100%
+    );
+    --gradient-sunset: linear-gradient(180deg, 
+      hsl(30, 80%, 50%) 0%, 
+      hsl(270, 50%, 35%) 50%, 
+      hsl(220, 50%, 15%) 100%
+    );
+
+    --shadow-glow-primary: 0 0 50px hsl(160 70% 45% / 0.35);
+    --shadow-glow-ocean: 0 0 50px hsl(199 80% 55% / 0.35);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+
+  /* Typography */
+  h1 {
+    @apply text-3xl font-bold tracking-tight;
+  }
+
+  h2 {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+
+  h3 {
+    @apply text-xl font-semibold;
+  }
+
+  h4 {
+    @apply text-lg font-medium;
+  }
+}
+
+@layer utilities {
+  /* Safe area for mobile devices */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Touch manipulation for better mobile tap response */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Gradient text utilities */
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-primary);
+  }
+
+  .text-gradient-gold {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-gold);
+  }
+
+  /* Background gradients */
+  .bg-gradient-primary {
+    background-image: var(--gradient-primary);
+  }
+
+  .bg-gradient-ocean {
+    background-image: var(--gradient-ocean);
+  }
+
+  .bg-gradient-sunset {
+    background-image: var(--gradient-sunset);
+  }
+
+  .bg-gradient-tropical {
+    background-image: var(--gradient-tropical);
+  }
+
+  .bg-gradient-gold {
+    background-image: var(--gradient-gold);
+  }
+
+  .bg-gradient-sidebar {
+    background-image: var(--gradient-sidebar);
+  }
+
+  .bg-gradient-hero {
+    background-image: var(--gradient-hero-light);
+  }
+
+  .dark .bg-gradient-hero {
+    background-image: var(--gradient-hero-dark);
+  }
+
+  /* Shadow utilities */
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .shadow-glow-primary {
+    box-shadow: var(--shadow-glow-primary);
+  }
+
+  .shadow-glow-ocean {
+    box-shadow: var(--shadow-glow-ocean);
+  }
+
+  /* Glassmorphism */
+  .glass {
+    @apply backdrop-blur-xl bg-card/80 border border-border/50;
+  }
+
+  .glass-strong {
+    @apply backdrop-blur-2xl bg-card/90 border border-border/60;
+  }
+
+  /* Animations */
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out;
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.4s ease-out;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-float-slow {
+    animation: float 8s ease-in-out infinite;
+  }
+
+  .animate-sway {
+    animation: sway 4s ease-in-out infinite;
+  }
+
+  .animate-wave {
+    animation: wave 8s ease-in-out infinite;
+  }
+
+  .animate-drift {
+    animation: drift 20s linear infinite;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  @keyframes sway {
+    0%, 100% { transform: rotate(-2deg); }
+    50% { transform: rotate(2deg); }
+  }
+
+  @keyframes wave {
+    0%, 100% { transform: translateX(0) translateY(0); }
+    25% { transform: translateX(5px) translateY(-3px); }
+    50% { transform: translateX(0) translateY(0); }
+    75% { transform: translateX(-5px) translateY(-3px); }
+  }
+
+  @keyframes drift {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(100vw); }
+  }
+
+  /* Scrollbar styling */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-muted rounded-full;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50;
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-float,
+    .animate-float-slow,
+    .animate-sway,
+    .animate-wave,
+    .animate-drift {
+      animation: none;
+    }
+  }
+}
+
+/* =====================================================
+   PRINT MODE (Thermal Receipt)
+   - Only prints #print-receipt
+   ===================================================== */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #print-receipt,
+  #print-receipt * {
+    visibility: visible;
+  }
+
+  #print-receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation Mono", "Courier New", monospace;
+    background: hsl(0 0% 100%);
+    color: hsl(0 0% 0%);
+  }
+
+  /* Make it truly thermal-friendly */
+  #print-receipt .receipt-paper {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    background: transparent !important;
+    color: hsl(0 0% 0%) !important;
+  }
+
+  @page {
+    margin: 0;
+  }
+}

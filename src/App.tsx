@@ -1,0 +1,184 @@
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+
+// Auth pages
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import NotFound from "./pages/NotFound";
+
+// Admin pages
+import AdminDashboard from "./pages/admin/Dashboard";
+
+import AdminTransactionList from "./pages/admin/TransactionList";
+import AdminPickup from "./pages/admin/Pickup";
+import AdminCashClosing from "./pages/admin/CashClosing";
+import AdminCustomers from "./pages/admin/Customers";
+import AdminServices from "./pages/admin/Services";
+import AdminUsers from "./pages/admin/Users";
+import AdminExpenses from "./pages/admin/Expenses";
+import AdminReports from "./pages/admin/Reports";
+
+// Kasir pages
+import KasirDashboard from "./pages/kasir/Dashboard";
+import KasirNewTransaction from "./pages/kasir/NewTransaction";
+import KasirTransactionList from "./pages/kasir/TransactionList";
+import KasirPickup from "./pages/kasir/Pickup";
+import KasirCashClosing from "./pages/kasir/CashClosing";
+
+import { Loader2 } from "lucide-react";
+
+const queryClient = new QueryClient();
+
+// Loading component
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Memuat...</p>
+      </div>
+    </div>
+  );
+}
+
+// Protected Route wrapper with role checking
+function ProtectedRoute({ 
+  children, 
+  allowedRoles 
+}: { 
+  children: React.ReactNode; 
+  allowedRoles?: ('admin' | 'kasir')[];
+}) {
+  const { isAuthenticated, isLoading, role } = useAuth();
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Check if user's role is allowed
+  if (allowedRoles && role && !allowedRoles.includes(role)) {
+    // Redirect to appropriate dashboard based on role
+    const redirectPath = role === 'admin' ? '/admin/dashboard' : '/kasir/dashboard';
+    return <Navigate to={redirectPath} replace />;
+  }
+
+  return <>{children}</>;
+}
+
+// Public Route wrapper (redirect if already logged in)
+function PublicRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading, role } = useAuth();
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
+  if (isAuthenticated) {
+    const redirectPath = role === 'admin' ? '/admin/dashboard' : '/kasir/dashboard';
+    return <Navigate to={redirectPath} replace />;
+  }
+
+  return <>{children}</>;
+}
+
+// Role-based redirect component
+function RoleBasedRedirect() {
+  const { isAuthenticated, isLoading, role } = useAuth();
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const redirectPath = role === 'admin' ? '/admin/dashboard' : '/kasir/dashboard';
+  return <Navigate to={redirectPath} replace />;
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      {/* Public routes */}
+      <Route path="/" element={<PublicRoute><Home /></PublicRoute>} />
+      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+      
+      {/* Dashboard redirect based on role */}
+      <Route path="/dashboard" element={<RoleBasedRedirect />} />
+      
+      {/* ===== ADMIN ROUTES ===== */}
+      <Route path="/admin/dashboard" element={
+        <ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>
+      } />
+      <Route path="/admin/daftar-transaksi" element={
+        <ProtectedRoute allowedRoles={['admin']}><AdminTransactionList /></ProtectedRoute>
+      } />
+      <Route path="/admin/pengambilan" element={
+        <ProtectedRoute allowedRoles={['admin']}><AdminPickup /></ProtectedRoute>
+      } />
+      <Route path="/admin/tutup-kas" element={
+        <ProtectedRoute allowedRoles={['admin']}><AdminCashClosing /></ProtectedRoute>
+      } />
+      <Route path="/admin/customer" element={
+        <ProtectedRoute allowedRoles={['admin']}><AdminCustomers /></ProtectedRoute>
+      } />
+      <Route path="/admin/layanan" element={
+        <ProtectedRoute allowedRoles={['admin']}><AdminServices /></ProtectedRoute>
+      } />
+      <Route path="/admin/user-kasir" element={
+        <ProtectedRoute allowedRoles={['admin']}><AdminUsers /></ProtectedRoute>
+      } />
+      <Route path="/admin/pengeluaran" element={
+        <ProtectedRoute allowedRoles={['admin']}><AdminExpenses /></ProtectedRoute>
+      } />
+      <Route path="/admin/laporan" element={
+        <ProtectedRoute allowedRoles={['admin']}><AdminReports /></ProtectedRoute>
+      } />
+      
+      {/* ===== KASIR ROUTES ===== */}
+      <Route path="/kasir/dashboard" element={
+        <ProtectedRoute allowedRoles={['kasir']}><KasirDashboard /></ProtectedRoute>
+      } />
+      <Route path="/kasir/transaksi-baru" element={
+        <ProtectedRoute allowedRoles={['kasir']}><KasirNewTransaction /></ProtectedRoute>
+      } />
+      <Route path="/kasir/daftar-transaksi" element={
+        <ProtectedRoute allowedRoles={['kasir']}><KasirTransactionList /></ProtectedRoute>
+      } />
+      <Route path="/kasir/pengambilan" element={
+        <ProtectedRoute allowedRoles={['kasir']}><KasirPickup /></ProtectedRoute>
+      } />
+      <Route path="/kasir/tutup-kas" element={
+        <ProtectedRoute allowedRoles={['kasir']}><KasirCashClosing /></ProtectedRoute>
+      } />
+      
+      {/* 404 */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <AuthProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthProvider>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
+
+export default App;
