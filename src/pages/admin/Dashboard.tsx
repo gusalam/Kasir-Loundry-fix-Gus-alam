@@ -5,13 +5,6 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -26,12 +19,9 @@ import {
   RefreshCw,
   Eye,
   ArrowRight,
-  Calendar,
 } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays } from 'date-fns';
+import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-
-type DateRange = 'today' | 'yesterday' | 'week' | 'month' | 'last7' | 'last30';
 
 interface DashboardStats {
   ordersToday: number;
@@ -42,63 +32,9 @@ interface DashboardStats {
   readyOrders: number;
 }
 
-const dateRangeLabels: Record<DateRange, string> = {
-  today: 'Hari Ini',
-  yesterday: 'Kemarin',
-  week: 'Minggu Ini',
-  month: 'Bulan Ini',
-  last7: '7 Hari Terakhir',
-  last30: '30 Hari Terakhir',
-};
-
-const getDateRange = (range: DateRange): { start: Date; end: Date; dateFormat: string } => {
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-  const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-
-  switch (range) {
-    case 'today':
-      return { start: todayStart, end: todayEnd, dateFormat: format(now, 'yyyy-MM-dd') };
-    case 'yesterday':
-      const yesterday = subDays(now, 1);
-      return {
-        start: new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0),
-        end: new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59),
-        dateFormat: format(yesterday, 'yyyy-MM-dd'),
-      };
-    case 'week':
-      return {
-        start: startOfWeek(now, { weekStartsOn: 1 }),
-        end: endOfWeek(now, { weekStartsOn: 1 }),
-        dateFormat: format(now, 'yyyy-MM-dd'),
-      };
-    case 'month':
-      return {
-        start: startOfMonth(now),
-        end: endOfMonth(now),
-        dateFormat: format(now, 'yyyy-MM-dd'),
-      };
-    case 'last7':
-      return {
-        start: subDays(todayStart, 6),
-        end: todayEnd,
-        dateFormat: format(now, 'yyyy-MM-dd'),
-      };
-    case 'last30':
-      return {
-        start: subDays(todayStart, 29),
-        end: todayEnd,
-        dateFormat: format(now, 'yyyy-MM-dd'),
-      };
-    default:
-      return { start: todayStart, end: todayEnd, dateFormat: format(now, 'yyyy-MM-dd') };
-  }
-};
-
 export default function AdminDashboard() {
   const { profile, user } = useAuth();
   const navigate = useNavigate();
-  const [dateRange, setDateRange] = useState<DateRange>('today');
   const [stats, setStats] = useState<DashboardStats>({
     ordersToday: 0,
     revenueToday: 0,
@@ -115,40 +51,39 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [dateRange]);
+  }, []);
 
   const fetchDashboardData = async () => {
     try {
       setError(null);
       setIsLoading(true);
       
-      const { start, end } = getDateRange(dateRange);
-      const startISO = start.toISOString();
-      const endISO = end.toISOString();
-      const startDate = format(start, 'yyyy-MM-dd');
-      const endDate = format(end, 'yyyy-MM-dd');
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
 
       const { data: transactions, error: transError } = await supabase
         .from('transactions')
         .select('id')
-        .gte('created_at', startISO)
-        .lte('created_at', endISO);
+        .gte('created_at', todayStart.toISOString())
+        .lte('created_at', todayEnd.toISOString());
 
       if (transError) throw transError;
 
       const { data: payments, error: payError } = await supabase
         .from('payments')
         .select('amount')
-        .gte('created_at', startISO)
-        .lte('created_at', endISO);
+        .gte('created_at', todayStart.toISOString())
+        .lte('created_at', todayEnd.toISOString());
 
       if (payError) throw payError;
 
       const { data: expenses, error: expError } = await supabase
         .from('expenses')
         .select('amount')
-        .gte('expense_date', startDate)
-        .lte('expense_date', endDate);
+        .eq('expense_date', today);
 
       if (expError) throw expError;
 
@@ -248,45 +183,27 @@ export default function AdminDashboard() {
   return (
     <MainLayout title="Dashboard">
       <div className="space-y-6">
-        {/* Greeting & Date Filter */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-foreground">
-              Selamat Datang, {displayName} 👋
-            </h2>
-            <p className="text-muted-foreground mt-1">
-              Ringkasan bisnis laundry - {dateRangeLabels[dateRange]}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <Select value={dateRange} onValueChange={(val) => setDateRange(val as DateRange)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Pilih periode" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">Hari Ini</SelectItem>
-                <SelectItem value="yesterday">Kemarin</SelectItem>
-                <SelectItem value="week">Minggu Ini</SelectItem>
-                <SelectItem value="month">Bulan Ini</SelectItem>
-                <SelectItem value="last7">7 Hari Terakhir</SelectItem>
-                <SelectItem value="last30">30 Hari Terakhir</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Greeting */}
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">
+            Selamat Datang, {displayName} 👋
+          </h2>
+          <p className="text-muted-foreground mt-1">
+            Ringkasan bisnis laundry Anda hari ini
+          </p>
         </div>
 
         {/* Stats Grid - 4 columns on desktop */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
-            title={`Order ${dateRangeLabels[dateRange]}`}
+            title="Order Hari Ini"
             value={stats.ordersToday}
             subtitle="transaksi"
             icon={<ShoppingCart className="h-5 w-5" />}
             variant="primary"
           />
           <StatCard
-            title={`Omzet ${dateRangeLabels[dateRange]}`}
+            title="Omzet Hari Ini"
             value={formatCurrency(stats.revenueToday)}
             subtitle="pendapatan"
             icon={<TrendingUp className="h-5 w-5" />}
@@ -295,7 +212,7 @@ export default function AdminDashboard() {
           <StatCard
             title="Pengeluaran"
             value={formatCurrency(stats.expensesToday)}
-            subtitle={dateRangeLabels[dateRange].toLowerCase()}
+            subtitle="hari ini"
             icon={<TrendingDown className="h-5 w-5" />}
             variant="warning"
           />
