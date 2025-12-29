@@ -8,6 +8,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { ConnectionStatus } from '@/components/pwa/ConnectionStatus';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,6 +64,9 @@ export function Topbar({ title, onMenuClick }: TopbarProps) {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Connection Status */}
+          <ConnectionStatus />
+
           {/* Search */}
           <div className="hidden md:block">
             <Input
