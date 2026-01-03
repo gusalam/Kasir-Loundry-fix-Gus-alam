@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { MainLayout } from '@/components/layout/MainLayout';
+import { KasirLayout } from '@/components/kasir/KasirLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -263,7 +263,7 @@ export default function KasirTransactionList() {
   );
 
   return (
-    <MainLayout title="Daftar Transaksi">
+    <KasirLayout>
       {/* Filters */}
       <Card className="p-4 mb-6">
         <div className="flex flex-wrap gap-3">
@@ -490,6 +490,6 @@ export default function KasirTransactionList() {
         onClose={() => setShowReceipt(false)}
         data={receiptData}
       />
-    </MainLayout>
+    </KasirLayout>
   );
 }

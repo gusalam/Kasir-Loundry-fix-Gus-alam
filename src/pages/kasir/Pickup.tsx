@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MainLayout } from '@/components/layout/MainLayout';
+import { KasirLayout } from '@/components/kasir/KasirLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -118,7 +118,7 @@ export default function KasirPickup() {
   );
 
   return (
-    <MainLayout title="Pengambilan">
+    <KasirLayout>
       {/* Header Stats */}
       <Card className="p-6 mb-6 bg-gradient-to-r from-success/10 to-success/5">
         <div className="flex items-center gap-4">
@@ -244,6 +244,6 @@ export default function KasirPickup() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </MainLayout>
+    </KasirLayout>
   );
 }
