@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MainLayout } from '@/components/layout/MainLayout';
-import { StatCard } from '@/components/dashboard/StatCard';
+import { AdminLayout } from '@/components/admin/AdminLayout';
+import { MobileStatCard } from '@/components/dashboard/MobileStatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,9 +19,11 @@ import {
   RefreshCw,
   Eye,
   ArrowRight,
+  Plus,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { motion } from 'framer-motion';
 
 interface DashboardStats {
   ordersToday: number;
@@ -51,12 +53,35 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchDashboardData();
+
+    // Set up realtime subscription
+    const channel = supabase
+      .channel('admin-dashboard-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'transactions' },
+        () => fetchDashboardData()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'payments' },
+        () => fetchDashboardData()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'expenses' },
+        () => fetchDashboardData()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchDashboardData = async () => {
     try {
       setError(null);
-      setIsLoading(true);
       
       const today = format(new Date(), 'yyyy-MM-dd');
       const todayStart = new Date();
@@ -156,67 +181,70 @@ export default function AdminDashboard() {
 
   if (isLoading) {
     return (
-      <MainLayout title="Dashboard">
+      <AdminLayout title="Dashboard">
         <div className="flex flex-col items-center justify-center h-64 gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Memuat data...</p>
         </div>
-      </MainLayout>
+      </AdminLayout>
     );
   }
 
   if (error) {
     return (
-      <MainLayout title="Dashboard">
+      <AdminLayout title="Dashboard">
         <div className="flex flex-col items-center justify-center h-64 gap-4">
           <AlertTriangle className="h-12 w-12 text-destructive" />
           <p className="text-destructive font-medium">{error}</p>
-          <Button onClick={fetchDashboardData} variant="outline">
+          <Button onClick={fetchDashboardData} variant="outline" className="h-12 rounded-xl">
             <RefreshCw className="h-4 w-4 mr-2" />
             Coba Lagi
           </Button>
         </div>
-      </MainLayout>
+      </AdminLayout>
     );
   }
 
   return (
-    <MainLayout title="Dashboard">
+    <AdminLayout title="Dashboard">
       <div className="space-y-6">
         {/* Greeting */}
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">
-            Selamat Datang, {displayName} 👋
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <h2 className="text-xl font-bold text-foreground">
+            Halo, {displayName} 👋
           </h2>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">
             Ringkasan bisnis laundry Anda hari ini
           </p>
-        </div>
+        </motion.div>
 
-        {/* Stats Grid - 4 columns on desktop */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
+        {/* Stats Grid - 2 columns mobile */}
+        <div className="grid grid-cols-2 gap-3">
+          <MobileStatCard
             title="Order Hari Ini"
             value={stats.ordersToday}
             subtitle="transaksi"
             icon={<ShoppingCart className="h-5 w-5" />}
             variant="primary"
           />
-          <StatCard
-            title="Omzet Hari Ini"
+          <MobileStatCard
+            title="Omzet"
             value={formatCurrency(stats.revenueToday)}
-            subtitle="pendapatan"
+            subtitle="hari ini"
             icon={<TrendingUp className="h-5 w-5" />}
             variant="success"
           />
-          <StatCard
+          <MobileStatCard
             title="Pengeluaran"
             value={formatCurrency(stats.expensesToday)}
             subtitle="hari ini"
             icon={<TrendingDown className="h-5 w-5" />}
             variant="warning"
           />
-          <StatCard
+          <MobileStatCard
             title="Laba Bersih"
             value={formatCurrency(stats.profitToday)}
             subtitle={stats.profitToday >= 0 ? 'profit' : 'rugi'}
@@ -226,106 +254,93 @@ export default function AdminDashboard() {
         </div>
 
         {/* Quick Status Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card 
-            className="cursor-pointer hover:shadow-md transition-shadow" 
+        <div className="grid grid-cols-2 gap-3">
+          <motion.button
+            whileTap={{ scale: 0.98 }}
             onClick={() => navigate('/admin/pengambilan')}
+            className="bg-card p-4 rounded-2xl border-2 border-border text-left active:scale-[0.98] touch-manipulation"
           >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-success/20">
-                  <Package className="h-6 w-6 text-success" />
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-foreground">{stats.readyOrders}</p>
-                  <p className="text-sm text-muted-foreground">Siap Diambil</p>
-                </div>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-success/20 flex items-center justify-center">
+                <Package className="h-6 w-6 text-success" />
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{stats.readyOrders}</p>
+                <p className="text-xs text-muted-foreground">Siap Diambil</p>
+              </div>
+            </div>
+          </motion.button>
           
-          <Card 
-            className="cursor-pointer hover:shadow-md transition-shadow" 
+          <motion.button
+            whileTap={{ scale: 0.98 }}
             onClick={() => navigate('/admin/daftar-transaksi?status=diproses')}
+            className="bg-card p-4 rounded-2xl border-2 border-border text-left active:scale-[0.98] touch-manipulation"
           >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-warning/20">
-                  <Clock className="h-6 w-6 text-warning" />
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-foreground">{stats.pendingOrders}</p>
-                  <p className="text-sm text-muted-foreground">Dalam Proses</p>
-                </div>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-warning/20 flex items-center justify-center">
+                <Clock className="h-6 w-6 text-warning" />
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{stats.pendingOrders}</p>
+                <p className="text-xs text-muted-foreground">Dalam Proses</p>
+              </div>
+            </div>
+          </motion.button>
         </div>
 
         {/* Recent Transactions */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Transaksi Terbaru</CardTitle>
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
+            <CardTitle className="text-base">Transaksi Terbaru</CardTitle>
             <Button 
               variant="ghost" 
               size="sm"
+              className="text-xs"
               onClick={() => navigate('/admin/daftar-transaksi')}
             >
-              Lihat Semua
-              <ArrowRight className="h-4 w-4 ml-1" />
+              Semua
+              <ArrowRight className="h-3 w-3 ml-1" />
             </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-4">
             {recentTransactions.length === 0 ? (
-              <div className="text-center py-8">
-                <ShoppingCart className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-muted-foreground">Belum ada transaksi hari ini</p>
+              <div className="text-center py-6">
+                <ShoppingCart className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Belum ada transaksi hari ini</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-muted/50 border-b">
-                    <tr>
-                      <th className="text-left p-3 font-medium text-sm">Invoice</th>
-                      <th className="text-left p-3 font-medium text-sm">Customer</th>
-                      <th className="text-left p-3 font-medium text-sm">Total</th>
-                      <th className="text-left p-3 font-medium text-sm">Status</th>
-                      <th className="text-left p-3 font-medium text-sm">Waktu</th>
-                      <th className="text-left p-3 font-medium text-sm">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {recentTransactions.map((trans) => (
-                      <tr key={trans.id} className="hover:bg-muted/50">
-                        <td className="p-3 font-medium">{trans.invoice_number}</td>
-                        <td className="p-3">{trans.customers?.name || 'Walk-in'}</td>
-                        <td className="p-3 font-semibold">{formatCurrency(Number(trans.total_amount))}</td>
-                        <td className="p-3">
-                          <Badge variant={getStatusBadge(trans.status) as any}>
-                            {getStatusLabel(trans.status)}
-                          </Badge>
-                        </td>
-                        <td className="p-3 text-sm text-muted-foreground">
-                          {format(new Date(trans.created_at), 'HH:mm', { locale: id })}
-                        </td>
-                        <td className="p-3">
-                          <Button 
-                            size="icon-sm" 
-                            variant="ghost"
-                            onClick={() => navigate(`/admin/daftar-transaksi?id=${trans.id}`)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="space-y-3">
+                {recentTransactions.slice(0, 5).map((trans) => (
+                  <motion.button
+                    key={trans.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    onClick={() => navigate(`/admin/daftar-transaksi?id=${trans.id}`)}
+                    className="w-full flex items-center justify-between p-3 bg-muted/50 rounded-xl active:scale-[0.98] touch-manipulation text-left"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">
+                        {trans.invoice_number}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {trans.customers?.name || 'Walk-in'} • {format(new Date(trans.created_at), 'HH:mm', { locale: id })}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 ml-2">
+                      <Badge variant={getStatusBadge(trans.status) as any} className="text-[10px]">
+                        {getStatusLabel(trans.status)}
+                      </Badge>
+                      <p className="font-semibold text-sm whitespace-nowrap">
+                        {formatCurrency(Number(trans.total_amount))}
+                      </p>
+                    </div>
+                  </motion.button>
+                ))}
               </div>
             )}
           </CardContent>
         </Card>
       </div>
-    </MainLayout>
+    </AdminLayout>
   );
 }

@@ -13,7 +13,7 @@ import NotFound from "./pages/NotFound";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/Dashboard";
-
+import AdminMenu from "./pages/admin/AdminMenu";
 import AdminTransactionList from "./pages/admin/TransactionList";
 import AdminPickup from "./pages/admin/Pickup";
 import AdminCashClosing from "./pages/admin/CashClosing";
@@ -136,7 +136,7 @@ function AppRoutes() {
       <Route path="/admin/layanan" element={
         <ProtectedRoute allowedRoles={['admin']}><AdminServices /></ProtectedRoute>
       } />
-      <Route path="/admin/user-kasir" element={
+      <Route path="/admin/users" element={
         <ProtectedRoute allowedRoles={['admin']}><AdminUsers /></ProtectedRoute>
       } />
       <Route path="/admin/pengeluaran" element={
@@ -144,6 +144,9 @@ function AppRoutes() {
       } />
       <Route path="/admin/laporan" element={
         <ProtectedRoute allowedRoles={['admin']}><AdminReports /></ProtectedRoute>
+      } />
+      <Route path="/admin/menu" element={
+        <ProtectedRoute allowedRoles={['admin']}><AdminMenu /></ProtectedRoute>
       } />
       
       {/* ===== KASIR ROUTES ===== */}

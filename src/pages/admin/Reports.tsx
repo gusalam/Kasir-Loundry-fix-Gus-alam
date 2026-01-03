@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MainLayout } from '@/components/layout/MainLayout';
+import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -165,16 +165,16 @@ export default function AdminReports() {
 
   if (isLoading) {
     return (
-      <MainLayout title="Laporan">
+      <AdminLayout title="Laporan">
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </MainLayout>
+      </AdminLayout>
     );
   }
 
   return (
-    <MainLayout title="Laporan">
+    <AdminLayout title="Laporan">
       {/* Date Filter */}
       <Card className="p-4 mb-6">
         <div className="flex flex-wrap items-end gap-4">
@@ -367,6 +367,6 @@ export default function AdminReports() {
           </div>
         </CardContent>
       </Card>
-    </MainLayout>
+    </AdminLayout>
   );
 }

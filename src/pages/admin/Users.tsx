@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MainLayout } from '@/components/layout/MainLayout';
+import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -110,7 +110,7 @@ export default function AdminUsers() {
   );
 
   return (
-    <MainLayout title="Manajemen User Kasir">
+    <AdminLayout title="Manajemen User Kasir">
       {/* Header */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="flex-1">
@@ -220,6 +220,6 @@ export default function AdminUsers() {
           </div>
         )}
       </Card>
-    </MainLayout>
+    </AdminLayout>
   );
 }
