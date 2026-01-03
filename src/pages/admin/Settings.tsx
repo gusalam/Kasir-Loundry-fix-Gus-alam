@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
   Store,
-  Receipt,
+  Receipt as ReceiptIcon,
   MessageCircle,
   Phone,
   MapPin,
@@ -21,7 +21,9 @@ import {
   Settings as SettingsIcon,
   Image,
   Printer,
+  Eye,
 } from 'lucide-react';
+import { Receipt, ReceiptData } from '@/components/receipt/Receipt';
 import { motion } from 'framer-motion';
 import {
   Select,
@@ -42,10 +44,30 @@ interface ReceiptSettings {
   whatsapp_enabled: boolean;
 }
 
+// Sample receipt data for preview
+const SAMPLE_RECEIPT_DATA: ReceiptData = {
+  invoice_number: 'INV-2025-0001',
+  created_at: new Date().toISOString(),
+  customer_name: 'Budi Santoso',
+  customer_phone: '08123456789',
+  items: [
+    { service_name: 'Cuci Setrika Kiloan', qty: 3, price: 8000, subtotal: 24000 },
+    { service_name: 'Cuci Kering Satuan', qty: 2, price: 15000, subtotal: 30000 },
+  ],
+  total_amount: 54000,
+  paid_amount: 54000,
+  payment_method: 'cash',
+  payment_status: 'lunas',
+  order_status: 'selesai',
+  estimated_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+  notes: 'Pisahkan baju putih',
+};
+
 export default function AdminSettings() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [settings, setSettings] = useState<ReceiptSettings>({
     business_name: 'POS Laundry',
     address: '',
@@ -222,7 +244,7 @@ export default function AdminSettings() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Receipt className="h-5 w-5 text-warning" />
+              <ReceiptIcon className="h-5 w-5 text-warning" />
               Pengaturan Struk
             </CardTitle>
             <CardDescription>
@@ -279,6 +301,46 @@ export default function AdminSettings() {
                 onCheckedChange={(checked) => setSettings({ ...settings, show_logo: checked })}
               />
             </div>
+
+            {/* Preview Button */}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowPreview(!showPreview)}
+              className="w-full h-12 rounded-xl"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              {showPreview ? 'Sembunyikan Preview' : 'Lihat Preview Struk'}
+            </Button>
+
+            {/* Receipt Preview */}
+            {showPreview && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-4"
+              >
+                <div className="bg-muted/30 p-4 rounded-xl border">
+                  <p className="text-xs text-muted-foreground text-center mb-4">
+                    Preview dengan data contoh
+                  </p>
+                  <div className="flex justify-center overflow-x-auto">
+                    <div className="border shadow-lg rounded-lg overflow-hidden bg-card">
+                      <Receipt
+                        data={SAMPLE_RECEIPT_DATA}
+                        laundryName={settings.business_name}
+                        laundryAddress={settings.address || ''}
+                        laundryPhone={settings.phone || ''}
+                        footerText={settings.footer_text || ''}
+                        showLogo={settings.show_logo}
+                        paperSize={settings.paper_size}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
           </CardContent>
         </Card>
 
