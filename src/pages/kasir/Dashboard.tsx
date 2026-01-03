@@ -1,32 +1,30 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { MainLayout } from '@/components/layout/MainLayout';
-import { StatCard } from '@/components/dashboard/StatCard';
+import { KasirLayout } from '@/components/kasir/KasirLayout';
+import { QuickStatCard } from '@/components/kasir/QuickStatCard';
+import { MenuGrid } from '@/components/kasir/MenuGrid';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import {
   ShoppingCart,
   TrendingUp,
   Package,
-  CreditCard,
-  Plus,
   Loader2,
   AlertTriangle,
   RefreshCw,
-  Eye,
   ArrowRight,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 interface DashboardStats {
   ordersToday: number;
   revenueToday: number;
-  unpaidOrders: number;
-  readyOrders: number;
+  itemsSold: number;
 }
 
 export default function KasirDashboard() {
@@ -35,8 +33,7 @@ export default function KasirDashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     ordersToday: 0,
     revenueToday: 0,
-    unpaidOrders: 0,
-    readyOrders: 0,
+    itemsSold: 0,
   });
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,12 +43,30 @@ export default function KasirDashboard() {
 
   useEffect(() => {
     fetchDashboardData();
+    
+    // Set up realtime subscription
+    const channel = supabase
+      .channel('kasir-dashboard-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'transactions' },
+        () => fetchDashboardData()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'payments' },
+        () => fetchDashboardData()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchDashboardData = async () => {
     try {
       setError(null);
-      setIsLoading(true);
       
       const now = new Date();
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
@@ -60,6 +75,7 @@ export default function KasirDashboard() {
       const startISO = startOfDay.toISOString();
       const endISO = endOfDay.toISOString();
 
+      // Fetch today's transactions count
       const { data: transactions, error: transError } = await supabase
         .from('transactions')
         .select('id')
@@ -68,6 +84,7 @@ export default function KasirDashboard() {
 
       if (transError) throw transError;
 
+      // Fetch today's revenue
       const { data: payments, error: payError } = await supabase
         .from('payments')
         .select('amount')
@@ -77,16 +94,17 @@ export default function KasirDashboard() {
       if (payError) throw payError;
       const totalRevenue = payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
 
-      const { data: unpaidData } = await supabase
-        .from('transactions')
-        .select('id')
-        .eq('payment_status', 'belum_lunas');
+      // Fetch items sold today
+      const { data: items, error: itemsError } = await supabase
+        .from('transaction_items')
+        .select('qty, transaction_id, transactions!inner(created_at)')
+        .gte('transactions.created_at', startISO)
+        .lte('transactions.created_at', endISO);
 
-      const { data: readyData } = await supabase
-        .from('transactions')
-        .select('id')
-        .eq('status', 'selesai');
+      if (itemsError) throw itemsError;
+      const totalItems = items?.reduce((sum, i) => sum + Number(i.qty), 0) || 0;
 
+      // Fetch recent transactions
       const { data: recent } = await supabase
         .from('transactions')
         .select(`*, customers (name, phone)`)
@@ -96,8 +114,7 @@ export default function KasirDashboard() {
       setStats({
         ordersToday: transactions?.length || 0,
         revenueToday: totalRevenue,
-        unpaidOrders: unpaidData?.length || 0,
-        readyOrders: readyData?.length || 0,
+        itemsSold: totalItems,
       });
 
       setRecentTransactions(recent || []);
@@ -141,18 +158,18 @@ export default function KasirDashboard() {
 
   if (isLoading) {
     return (
-      <MainLayout title="Dashboard">
+      <KasirLayout>
         <div className="flex flex-col items-center justify-center h-64 gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Memuat data...</p>
         </div>
-      </MainLayout>
+      </KasirLayout>
     );
   }
 
   if (error) {
     return (
-      <MainLayout title="Dashboard">
+      <KasirLayout>
         <div className="flex flex-col items-center justify-center h-64 gap-4">
           <AlertTriangle className="h-12 w-12 text-destructive" />
           <p className="text-destructive font-medium">{error}</p>
@@ -161,170 +178,108 @@ export default function KasirDashboard() {
             Coba Lagi
           </Button>
         </div>
-      </MainLayout>
+      </KasirLayout>
     );
   }
 
   return (
-    <MainLayout title="Dashboard">
+    <KasirLayout>
       <div className="space-y-6">
-        {/* Greeting + CTA */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-foreground">
-              Halo, {displayName} 👋
-            </h2>
-            <p className="text-muted-foreground mt-1">
-              Siap melayani pelanggan hari ini
-            </p>
-          </div>
-          <Button 
-            size="lg"
-            onClick={() => navigate('/kasir/transaksi-baru')}
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Transaksi Baru
-          </Button>
-        </div>
+        {/* Greeting */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <h2 className="text-xl font-bold text-foreground">
+            Halo, {displayName} 👋
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Siap melayani pelanggan hari ini
+          </p>
+        </motion.div>
 
-        {/* Stats Grid - 4 columns on desktop */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            title="Order Hari Ini"
+        {/* Quick Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <QuickStatCard
+            title="Transaksi Hari Ini"
             value={stats.ordersToday}
-            subtitle="transaksi"
             icon={<ShoppingCart className="h-5 w-5" />}
             variant="primary"
           />
-          <StatCard
-            title="Uang Masuk"
+          <QuickStatCard
+            title="Omzet Hari Ini"
             value={formatCurrency(stats.revenueToday)}
-            subtitle="hari ini"
             icon={<TrendingUp className="h-5 w-5" />}
             variant="success"
           />
-          <StatCard
-            title="Siap Diambil"
-            value={stats.readyOrders}
-            subtitle="order"
+          <QuickStatCard
+            title="Item Terjual"
+            value={stats.itemsSold}
             icon={<Package className="h-5 w-5" />}
-            variant="info"
-          />
-          <StatCard
-            title="Belum Lunas"
-            value={stats.unpaidOrders}
-            subtitle="order"
-            icon={<CreditCard className="h-5 w-5" />}
             variant="warning"
           />
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Card 
-            className="cursor-pointer hover:shadow-md transition-shadow" 
-            onClick={() => navigate('/kasir/pengambilan')}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-success/20">
-                  <Package className="h-6 w-6 text-success" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-semibold text-foreground">Pengambilan</p>
-                  <p className="text-sm text-muted-foreground">{stats.readyOrders} siap diambil</p>
-                </div>
-                <ArrowRight className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card 
-            className="cursor-pointer hover:shadow-md transition-shadow" 
-            onClick={() => navigate('/kasir/daftar-transaksi')}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/20">
-                  <ShoppingCart className="h-6 w-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-semibold text-foreground">Daftar Transaksi</p>
-                  <p className="text-sm text-muted-foreground">Lihat semua order</p>
-                </div>
-                <ArrowRight className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
+        {/* Menu Grid */}
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+            Menu Utama
+          </h3>
+          <MenuGrid />
         </div>
 
         {/* Recent Transactions */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Transaksi Terbaru</CardTitle>
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
+            <CardTitle className="text-base">Transaksi Terbaru</CardTitle>
             <Button 
               variant="ghost" 
               size="sm"
+              className="text-xs"
               onClick={() => navigate('/kasir/daftar-transaksi')}
             >
               Lihat Semua
-              <ArrowRight className="h-4 w-4 ml-1" />
+              <ArrowRight className="h-3 w-3 ml-1" />
             </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-4">
             {recentTransactions.length === 0 ? (
-              <div className="text-center py-8">
-                <ShoppingCart className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-muted-foreground">Belum ada transaksi</p>
-                <p className="text-sm text-muted-foreground/70 mt-1">
-                  Tekan tombol "Transaksi Baru" untuk membuat order
-                </p>
+              <div className="text-center py-6">
+                <ShoppingCart className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Belum ada transaksi</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-muted/50 border-b">
-                    <tr>
-                      <th className="text-left p-3 font-medium text-sm">Invoice</th>
-                      <th className="text-left p-3 font-medium text-sm">Customer</th>
-                      <th className="text-left p-3 font-medium text-sm">Total</th>
-                      <th className="text-left p-3 font-medium text-sm">Status</th>
-                      <th className="text-left p-3 font-medium text-sm">Waktu</th>
-                      <th className="text-left p-3 font-medium text-sm">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {recentTransactions.map((trans) => (
-                      <tr key={trans.id} className="hover:bg-muted/50">
-                        <td className="p-3 font-medium">{trans.invoice_number}</td>
-                        <td className="p-3">{trans.customers?.name || 'Walk-in'}</td>
-                        <td className="p-3 font-semibold">{formatCurrency(Number(trans.total_amount))}</td>
-                        <td className="p-3">
-                          <Badge variant={getStatusBadge(trans.status) as any}>
-                            {getStatusLabel(trans.status)}
-                          </Badge>
-                        </td>
-                        <td className="p-3 text-sm text-muted-foreground">
-                          {format(new Date(trans.created_at), 'HH:mm', { locale: id })}
-                        </td>
-                        <td className="p-3">
-                          <Button 
-                            size="icon-sm" 
-                            variant="ghost"
-                            onClick={() => navigate(`/kasir/daftar-transaksi?id=${trans.id}`)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="space-y-3">
+                {recentTransactions.slice(0, 3).map((trans) => (
+                  <motion.div
+                    key={trans.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex items-center justify-between p-3 bg-muted/50 rounded-xl"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">
+                        {trans.invoice_number}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {trans.customers?.name || 'Walk-in'} • {format(new Date(trans.created_at), 'HH:mm', { locale: id })}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 ml-2">
+                      <Badge variant={getStatusBadge(trans.status) as any} className="text-[10px]">
+                        {getStatusLabel(trans.status)}
+                      </Badge>
+                      <p className="font-semibold text-sm whitespace-nowrap">
+                        {formatCurrency(Number(trans.total_amount))}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
             )}
           </CardContent>
         </Card>
       </div>
-    </MainLayout>
+    </KasirLayout>
   );
 }

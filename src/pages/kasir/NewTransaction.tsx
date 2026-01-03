@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MainLayout } from '@/components/layout/MainLayout';
+import { KasirLayout } from '@/components/kasir/KasirLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -322,16 +322,16 @@ export default function KasirNewTransaction() {
 
   if (isLoading) {
     return (
-      <MainLayout title="Transaksi Baru">
+      <KasirLayout>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </MainLayout>
+      </KasirLayout>
     );
   }
 
   return (
-    <MainLayout title="Transaksi Baru">
+    <KasirLayout>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Services & Customer */}
         <div className="lg:col-span-2 space-y-6">
@@ -768,6 +768,6 @@ export default function KasirNewTransaction() {
         }}
         data={receiptData}
       />
-    </MainLayout>
+    </KasirLayout>
   );
 }

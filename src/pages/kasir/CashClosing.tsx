@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MainLayout } from '@/components/layout/MainLayout';
+import { KasirLayout } from '@/components/kasir/KasirLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -132,18 +132,18 @@ export default function KasirCashClosing() {
 
   if (isLoading) {
     return (
-      <MainLayout title="Tutup Kas">
+      <KasirLayout>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </MainLayout>
+      </KasirLayout>
     );
   }
 
   // If today's closing already exists
   if (todayClosing) {
     return (
-      <MainLayout title="Tutup Kas">
+      <KasirLayout>
         <Card className="max-w-2xl mx-auto">
           <CardContent className="p-8 text-center">
             <div className="flex h-16 w-16 mx-auto mb-4 items-center justify-center rounded-full bg-success-light">
@@ -212,12 +212,12 @@ export default function KasirCashClosing() {
             </div>
           </CardContent>
         </Card>
-      </MainLayout>
+      </KasirLayout>
     );
   }
 
   return (
-    <MainLayout title="Tutup Kas">
+    <KasirLayout>
       <div className="max-w-2xl mx-auto">
         {/* Summary Cards */}
         <div className="grid grid-cols-2 gap-4 mb-6">
@@ -368,6 +368,6 @@ export default function KasirCashClosing() {
           </Card>
         )}
       </div>
-    </MainLayout>
+    </KasirLayout>
   );
 }
