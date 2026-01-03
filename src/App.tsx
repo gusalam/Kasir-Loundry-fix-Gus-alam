@@ -22,6 +22,7 @@ import AdminServices from "./pages/admin/Services";
 import AdminUsers from "./pages/admin/Users";
 import AdminExpenses from "./pages/admin/Expenses";
 import AdminReports from "./pages/admin/Reports";
+import AdminSettings from "./pages/admin/Settings";
 
 // Kasir pages
 import KasirDashboard from "./pages/kasir/Dashboard";
@@ -147,6 +148,9 @@ function AppRoutes() {
       } />
       <Route path="/admin/menu" element={
         <ProtectedRoute allowedRoles={['admin']}><AdminMenu /></ProtectedRoute>
+      } />
+      <Route path="/admin/pengaturan" element={
+        <ProtectedRoute allowedRoles={['admin']}><AdminSettings /></ProtectedRoute>
       } />
       
       {/* ===== KASIR ROUTES ===== */}
