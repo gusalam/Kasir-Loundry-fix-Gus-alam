@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MainLayout } from '@/components/layout/MainLayout';
+import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -160,7 +160,7 @@ export default function AdminCustomers() {
   );
 
   return (
-    <MainLayout title="Manajemen Customer">
+    <AdminLayout title="Manajemen Customer">
       {/* Header */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="flex-1">
@@ -321,6 +321,6 @@ export default function AdminCustomers() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </MainLayout>
+    </AdminLayout>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MainLayout } from '@/components/layout/MainLayout';
+import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -117,7 +117,7 @@ export default function AdminCashClosing() {
   const pendingCount = closings.filter(c => c.status === 'pending').length;
 
   return (
-    <MainLayout title="Tutup Kas">
+    <AdminLayout title="Tutup Kas">
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <Card>
@@ -249,6 +249,6 @@ export default function AdminCashClosing() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </MainLayout>
+    </AdminLayout>
   );
 }

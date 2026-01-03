@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { KasirLayout } from '@/components/kasir/KasirLayout';
-import { QuickStatCard } from '@/components/kasir/QuickStatCard';
-import { MenuGrid } from '@/components/kasir/MenuGrid';
+import { MobileStatCard } from '@/components/dashboard/MobileStatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,10 +10,14 @@ import {
   ShoppingCart,
   TrendingUp,
   Package,
+  Clock,
   Loader2,
   AlertTriangle,
   RefreshCw,
   ArrowRight,
+  Plus,
+  Truck,
+  ClipboardList,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -24,7 +27,8 @@ import { motion } from 'framer-motion';
 interface DashboardStats {
   ordersToday: number;
   revenueToday: number;
-  itemsSold: number;
+  pendingPickup: number;
+  inProgress: number;
 }
 
 export default function KasirDashboard() {
@@ -33,36 +37,40 @@ export default function KasirDashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     ordersToday: 0,
     revenueToday: 0,
-    itemsSold: 0,
+    pendingPickup: 0,
+    inProgress: 0,
   });
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const displayName = profile?.name || user?.email?.split('@')[0] || 'Kasir';
+  const userId = user?.id;
 
   useEffect(() => {
-    fetchDashboardData();
-    
-    // Set up realtime subscription
-    const channel = supabase
-      .channel('kasir-dashboard-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'transactions' },
-        () => fetchDashboardData()
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'payments' },
-        () => fetchDashboardData()
-      )
-      .subscribe();
+    if (userId) {
+      fetchDashboardData();
+      
+      // Set up realtime subscription
+      const channel = supabase
+        .channel('kasir-dashboard-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'transactions' },
+          () => fetchDashboardData()
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'payments' },
+          () => fetchDashboardData()
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [userId]);
 
   const fetchDashboardData = async () => {
     try {
@@ -75,46 +83,67 @@ export default function KasirDashboard() {
       const startISO = startOfDay.toISOString();
       const endISO = endOfDay.toISOString();
 
-      // Fetch today's transactions count
+      // Fetch today's transactions by this kasir
       const { data: transactions, error: transError } = await supabase
         .from('transactions')
         .select('id')
+        .eq('user_id', userId)
         .gte('created_at', startISO)
         .lte('created_at', endISO);
 
       if (transError) throw transError;
 
-      // Fetch today's revenue
-      const { data: payments, error: payError } = await supabase
-        .from('payments')
-        .select('amount')
+      // Fetch today's revenue from payments received by this kasir
+      // Since payments don't have user filter, we get payments from kasir's transactions
+      const { data: kasirTransactions } = await supabase
+        .from('transactions')
+        .select('id')
+        .eq('user_id', userId)
         .gte('created_at', startISO)
         .lte('created_at', endISO);
 
-      if (payError) throw payError;
-      const totalRevenue = payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+      const transactionIds = kasirTransactions?.map(t => t.id) || [];
+      
+      let totalRevenue = 0;
+      if (transactionIds.length > 0) {
+        const { data: payments, error: payError } = await supabase
+          .from('payments')
+          .select('amount')
+          .in('transaction_id', transactionIds)
+          .gte('created_at', startISO)
+          .lte('created_at', endISO);
 
-      // Fetch items sold today
-      const { data: items, error: itemsError } = await supabase
-        .from('transaction_items')
-        .select('qty, transaction_id, transactions!inner(created_at)')
-        .gte('transactions.created_at', startISO)
-        .lte('transactions.created_at', endISO);
+        if (payError) throw payError;
+        totalRevenue = payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+      }
 
-      if (itemsError) throw itemsError;
-      const totalItems = items?.reduce((sum, i) => sum + Number(i.qty), 0) || 0;
+      // Fetch pending pickup (selesai status) - kasir's transactions
+      const { data: pendingPickup } = await supabase
+        .from('transactions')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('status', 'selesai');
 
-      // Fetch recent transactions
+      // Fetch in progress (diterima, diproses, qc) - kasir's transactions
+      const { data: inProgress } = await supabase
+        .from('transactions')
+        .select('id')
+        .eq('user_id', userId)
+        .in('status', ['diterima', 'diproses', 'qc']);
+
+      // Fetch recent transactions by this kasir
       const { data: recent } = await supabase
         .from('transactions')
         .select(`*, customers (name, phone)`)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(5);
 
       setStats({
         ordersToday: transactions?.length || 0,
         revenueToday: totalRevenue,
-        itemsSold: totalItems,
+        pendingPickup: pendingPickup?.length || 0,
+        inProgress: inProgress?.length || 0,
       });
 
       setRecentTransactions(recent || []);
@@ -173,7 +202,7 @@ export default function KasirDashboard() {
         <div className="flex flex-col items-center justify-center h-64 gap-4">
           <AlertTriangle className="h-12 w-12 text-destructive" />
           <p className="text-destructive font-medium">{error}</p>
-          <Button onClick={fetchDashboardData} variant="outline">
+          <Button onClick={fetchDashboardData} variant="outline" className="h-12 rounded-xl">
             <RefreshCw className="h-4 w-4 mr-2" />
             Coba Lagi
           </Button>
@@ -194,51 +223,91 @@ export default function KasirDashboard() {
             Halo, {displayName} 👋
           </h2>
           <p className="text-sm text-muted-foreground">
-            Siap melayani pelanggan hari ini
+            Ringkasan transaksi Anda hari ini
           </p>
         </motion.div>
 
-        {/* Quick Stats Cards - Ringkasan Cepat */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <QuickStatCard
-            title="Transaksi Hari Ini"
+        {/* Stats Grid - 2 columns */}
+        <div className="grid grid-cols-2 gap-3">
+          <MobileStatCard
+            title="Order Hari Ini"
             value={stats.ordersToday}
+            subtitle="transaksi Anda"
             icon={<ShoppingCart className="h-5 w-5" />}
             variant="primary"
           />
-          <QuickStatCard
-            title="Omzet Hari Ini"
+          <MobileStatCard
+            title="Uang Masuk"
             value={formatCurrency(stats.revenueToday)}
+            subtitle="hari ini"
             icon={<TrendingUp className="h-5 w-5" />}
             variant="success"
           />
-          <QuickStatCard
-            title="Jumlah Cucian"
-            value={`${stats.itemsSold} item`}
+          <MobileStatCard
+            title="Belum Diambil"
+            value={stats.pendingPickup}
+            subtitle="siap diambil"
             icon={<Package className="h-5 w-5" />}
             variant="warning"
+            onClick={() => navigate('/kasir/pengambilan')}
+          />
+          <MobileStatCard
+            title="Dalam Proses"
+            value={stats.inProgress}
+            subtitle="sedang dikerjakan"
+            icon={<Clock className="h-5 w-5" />}
+            variant="info"
+            onClick={() => navigate('/kasir/daftar-transaksi')}
           />
         </div>
 
-        {/* Menu Grid - Menggantikan Sidebar */}
+        {/* Quick Actions */}
         <div>
           <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-            Menu Utama
+            Aksi Cepat
           </h3>
-          <MenuGrid />
+          <div className="grid grid-cols-1 gap-3">
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => navigate('/kasir/transaksi-baru')}
+              className="w-full h-14 bg-gradient-primary text-primary-foreground rounded-2xl flex items-center justify-center gap-3 font-semibold shadow-lg active:scale-[0.98] touch-manipulation"
+            >
+              <Plus className="h-6 w-6" />
+              Transaksi Baru
+            </motion.button>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate('/kasir/pengambilan')}
+                className="h-14 bg-card border-2 border-border text-foreground rounded-2xl flex items-center justify-center gap-2 font-medium active:scale-[0.98] touch-manipulation"
+              >
+                <Truck className="h-5 w-5 text-success" />
+                Pengambilan
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate('/kasir/tutup-kas')}
+                className="h-14 bg-card border-2 border-border text-foreground rounded-2xl flex items-center justify-center gap-2 font-medium active:scale-[0.98] touch-manipulation"
+              >
+                <ClipboardList className="h-5 w-5 text-warning" />
+                Tutup Kas
+              </motion.button>
+            </div>
+          </div>
         </div>
 
         {/* Recent Transactions */}
         <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
-            <CardTitle className="text-base">Transaksi Terbaru</CardTitle>
+            <CardTitle className="text-base">Transaksi Terakhir</CardTitle>
             <Button 
               variant="ghost" 
               size="sm"
               className="text-xs"
               onClick={() => navigate('/kasir/daftar-transaksi')}
             >
-              Lihat Semua
+              Semua
               <ArrowRight className="h-3 w-3 ml-1" />
             </Button>
           </CardHeader>
@@ -246,11 +315,11 @@ export default function KasirDashboard() {
             {recentTransactions.length === 0 ? (
               <div className="text-center py-6">
                 <ShoppingCart className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Belum ada transaksi</p>
+                <p className="text-sm text-muted-foreground">Belum ada transaksi hari ini</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {recentTransactions.slice(0, 3).map((trans) => (
+                {recentTransactions.slice(0, 5).map((trans) => (
                   <motion.div
                     key={trans.id}
                     initial={{ opacity: 0 }}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { MainLayout } from '@/components/layout/MainLayout';
+import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -230,7 +230,7 @@ export default function AdminTransactionList() {
   );
 
   return (
-    <MainLayout title="Daftar Transaksi">
+    <AdminLayout title="Daftar Transaksi">
       {/* Filters */}
       <Card className="p-4 mb-6">
         <div className="flex flex-wrap gap-3">
@@ -413,6 +413,6 @@ export default function AdminTransactionList() {
         onClose={() => setShowReceipt(false)}
         data={receiptData}
       />
-    </MainLayout>
+    </AdminLayout>
   );
 }

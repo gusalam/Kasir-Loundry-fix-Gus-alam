@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MainLayout } from '@/components/layout/MainLayout';
+import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -106,7 +106,7 @@ export default function AdminPickup() {
   );
 
   return (
-    <MainLayout title="Pengambilan Laundry">
+    <AdminLayout title="Pengambilan Laundry">
       {/* Search */}
       <Card className="p-4 mb-6">
         <div className="flex gap-3">
@@ -220,6 +220,6 @@ export default function AdminPickup() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </MainLayout>
+    </AdminLayout>
   );
 }
