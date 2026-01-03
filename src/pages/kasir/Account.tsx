@@ -1,0 +1,214 @@
+import { useState } from 'react';
+import { KasirLayout } from '@/components/kasir/KasirLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import {
+  User,
+  Mail,
+  Lock,
+  Save,
+  Loader2,
+  Shield,
+  Smartphone,
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+
+export default function KasirAccount() {
+  const { user, profile, refreshProfile } = useAuth();
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [name, setName] = useState(profile?.name || '');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const handleUpdateProfile = async () => {
+    if (!name.trim()) {
+      toast.error('Nama tidak boleh kosong');
+      return;
+    }
+
+    setIsUpdatingProfile(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ name: name.trim() })
+        .eq('id', user?.id);
+
+      if (error) throw error;
+
+      await refreshProfile();
+      toast.success('Profil berhasil diperbarui');
+    } catch (error: any) {
+      toast.error('Gagal memperbarui profil: ' + error.message);
+    } finally {
+      setIsUpdatingProfile(false);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (newPassword.length < 6) {
+      toast.error('Password minimal 6 karakter');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error('Konfirmasi password tidak cocok');
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) throw error;
+
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      toast.success('Password berhasil diperbarui');
+    } catch (error: any) {
+      toast.error('Gagal memperbarui password: ' + error.message);
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
+  return (
+    <KasirLayout>
+      <div className="space-y-6 max-w-lg mx-auto">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center"
+        >
+          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+            <User className="h-10 w-10 text-primary" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground">{profile?.name}</h2>
+          <p className="text-sm text-muted-foreground">{user?.email}</p>
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <Shield className="h-4 w-4 text-primary" />
+            <span className="text-xs font-medium text-primary">Kasir</span>
+          </div>
+        </motion.div>
+
+        {/* Profile Card */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Informasi Profil
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nama Lengkap</Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Nama Anda"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">{user?.email}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Email tidak dapat diubah</p>
+            </div>
+            <Button 
+              onClick={handleUpdateProfile} 
+              disabled={isUpdatingProfile}
+              className="w-full"
+            >
+              {isUpdatingProfile ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Menyimpan...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Simpan Perubahan
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Password Card */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Lock className="h-4 w-4" />
+              Ubah Password
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Password Baru</Label>
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Minimal 6 karakter"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Konfirmasi Password</Label>
+              <Input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Ulangi password baru"
+              />
+            </div>
+            <Button 
+              onClick={handleUpdatePassword} 
+              disabled={isUpdatingPassword || !newPassword || !confirmPassword}
+              variant="outline"
+              className="w-full"
+            >
+              {isUpdatingPassword ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Memperbarui...
+                </>
+              ) : (
+                <>
+                  <Lock className="h-4 w-4 mr-2" />
+                  Ubah Password
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* App Info */}
+        <Card className="bg-muted/50">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Smartphone className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">POS Laundry</p>
+                <p className="text-xs text-muted-foreground">Versi 1.0.0 • Clean & Fresh</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </KasirLayout>
+  );
+}

@@ -198,7 +198,7 @@ export default function KasirDashboard() {
           </p>
         </motion.div>
 
-        {/* Quick Stats Cards */}
+        {/* Quick Stats Cards - Ringkasan Cepat */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <QuickStatCard
             title="Transaksi Hari Ini"
@@ -213,14 +213,14 @@ export default function KasirDashboard() {
             variant="success"
           />
           <QuickStatCard
-            title="Item Terjual"
-            value={stats.itemsSold}
+            title="Jumlah Cucian"
+            value={`${stats.itemsSold} item`}
             icon={<Package className="h-5 w-5" />}
             variant="warning"
           />
         </div>
 
-        {/* Menu Grid */}
+        {/* Menu Grid - Menggantikan Sidebar */}
         <div>
           <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
             Menu Utama

@@ -29,6 +29,7 @@ import KasirNewTransaction from "./pages/kasir/NewTransaction";
 import KasirTransactionList from "./pages/kasir/TransactionList";
 import KasirPickup from "./pages/kasir/Pickup";
 import KasirCashClosing from "./pages/kasir/CashClosing";
+import KasirAccount from "./pages/kasir/Account";
 
 import { Loader2 } from "lucide-react";
 
@@ -160,6 +161,9 @@ function AppRoutes() {
       } />
       <Route path="/kasir/tutup-kas" element={
         <ProtectedRoute allowedRoles={['kasir']}><KasirCashClosing /></ProtectedRoute>
+      } />
+      <Route path="/kasir/akun" element={
+        <ProtectedRoute allowedRoles={['kasir']}><KasirAccount /></ProtectedRoute>
       } />
       
       {/* 404 */}
