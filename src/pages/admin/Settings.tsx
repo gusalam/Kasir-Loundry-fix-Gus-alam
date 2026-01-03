@@ -24,6 +24,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { Receipt, ReceiptData } from '@/components/receipt/Receipt';
+import { PrinterSettings } from '@/components/printer/PrinterSettings';
 import { motion } from 'framer-motion';
 import {
   Select,
@@ -389,6 +390,15 @@ export default function AdminSettings() {
             )}
           </CardContent>
         </Card>
+
+        {/* Bluetooth Printer Settings */}
+        <PrinterSettings
+          autoPrint={false}
+          onAutoPrintChange={(value) => {
+            // Could be saved to settings if needed
+            console.log('Auto print:', value);
+          }}
+        />
 
         {/* Save Button */}
         <Button

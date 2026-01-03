@@ -1,9 +1,11 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Home, ShoppingCart, History, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { KasirHeader } from './KasirHeader';
+import { OfflineBanner } from '@/components/pwa/OfflineBanner';
+import { useOfflineSync } from '@/hooks/useOfflineSync';
 
 interface KasirLayoutProps {
   children: ReactNode;
@@ -19,6 +21,12 @@ const bottomNavItems = [
 export function KasirLayout({ children }: KasirLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { cacheDataForOffline } = useOfflineSync();
+
+  // Cache data for offline use when component mounts
+  useEffect(() => {
+    cacheDataForOffline();
+  }, [cacheDataForOffline]);
 
   // Check if current path matches or starts with the nav item path
   const isPathActive = (itemPath: string) => {
@@ -35,6 +43,9 @@ export function KasirLayout({ children }: KasirLayoutProps) {
 
       {/* Spacer for fixed header (taller on mobile due to shift info) */}
       <div className="h-[88px] sm:h-[72px] safe-area-top" />
+
+      {/* Offline Banner */}
+      <OfflineBanner />
 
       {/* Main content - FULL WIDTH, no sidebar margin */}
       <main className="flex-1 overflow-y-auto pb-20 w-full">

@@ -7,6 +7,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Receipt, ReceiptData } from './Receipt';
 import { useReceiptSettings } from '@/hooks/useReceiptSettings';
+import { BluetoothPrintButton } from '@/components/printer/BluetoothPrintButton';
 import { Printer, X, Loader2 } from 'lucide-react';
 
 interface ReceiptModalProps {
@@ -20,7 +21,6 @@ export function ReceiptModal({ open, onClose, data }: ReceiptModalProps) {
   const receiptProps = getReceiptProps();
 
   const handlePrint = () => {
-    // Print mode dikontrol via CSS @media print agar hanya #print-receipt yang tercetak
     window.print();
   };
 
@@ -53,6 +53,7 @@ export function ReceiptModal({ open, onClose, data }: ReceiptModalProps) {
                   footerText={receiptProps.footerText}
                   showLogo={receiptProps.showLogo}
                   paperSize={receiptProps.paperSize}
+                  showQRCode={true}
                 />
               </div>
             )}
@@ -60,14 +61,17 @@ export function ReceiptModal({ open, onClose, data }: ReceiptModalProps) {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3 mt-4">
-          <Button variant="outline" className="flex-1" onClick={onClose}>
-            <X className="h-4 w-4" />
+        <div className="flex flex-col gap-2 mt-4">
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={handlePrint} disabled={isLoading}>
+              <Printer className="h-4 w-4 mr-2" />
+              Cetak Browser
+            </Button>
+            <BluetoothPrintButton receiptData={data} className="flex-1" />
+          </div>
+          <Button variant="ghost" onClick={onClose}>
+            <X className="h-4 w-4 mr-2" />
             Tutup
-          </Button>
-          <Button className="flex-1" onClick={handlePrint} disabled={isLoading}>
-            <Printer className="h-4 w-4" />
-            Cetak Struk
           </Button>
         </div>
       </DialogContent>

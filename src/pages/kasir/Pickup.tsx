@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { KasirLayout } from '@/components/kasir/KasirLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +15,7 @@ import {
   Package,
   CheckCircle,
   Phone,
+  QrCode,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -25,6 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { QRScanner } from '@/components/qrcode/QRScanner';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
@@ -40,11 +43,13 @@ interface Transaction {
 
 export default function KasirPickup() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [pickupId, setPickupId] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
 
   useEffect(() => {
     fetchTransactions();
@@ -117,6 +122,39 @@ export default function KasirPickup() {
     t.customers?.phone?.includes(search)
   );
 
+  const handleScan = async (data: { invoice: string; rawData: string }) => {
+    setShowScanner(false);
+    // Search for the scanned invoice
+    const found = transactions.find(t => 
+      t.invoice_number.toLowerCase() === data.invoice.toLowerCase()
+    );
+    
+    if (found) {
+      setPickupId(found.id);
+      toast.success(`Invoice ${data.invoice} ditemukan!`);
+    } else {
+      // Try to find in all transactions
+      const { data: allTx, error } = await supabase
+        .from('transactions')
+        .select('id, invoice_number, status')
+        .eq('invoice_number', data.invoice)
+        .maybeSingle();
+      
+      if (allTx) {
+        if (allTx.status === 'diambil') {
+          toast.error('Transaksi ini sudah diambil sebelumnya');
+        } else if (allTx.status === 'selesai') {
+          setPickupId(allTx.id);
+          toast.success(`Invoice ${data.invoice} ditemukan!`);
+        } else {
+          toast.warning(`Invoice ditemukan tapi status: ${allTx.status}`);
+        }
+      } else {
+        toast.error('Invoice tidak ditemukan');
+      }
+    }
+  };
+
   return (
     <KasirLayout>
       {/* Header Stats */}
@@ -132,7 +170,7 @@ export default function KasirPickup() {
         </div>
       </Card>
 
-      {/* Search */}
+      {/* Search & Scan */}
       <Card className="p-4 mb-6">
         <div className="flex gap-3">
           <div className="flex-1">
@@ -143,6 +181,9 @@ export default function KasirPickup() {
               leftIcon={<Search className="h-4 w-4" />}
             />
           </div>
+          <Button variant="outline" onClick={() => setShowScanner(true)}>
+            <QrCode className="h-4 w-4" />
+          </Button>
           <Button variant="outline" onClick={fetchTransactions}>
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -244,6 +285,14 @@ export default function KasirPickup() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* QR Scanner */}
+      <QRScanner
+        isOpen={showScanner}
+        onClose={() => setShowScanner(false)}
+        onScan={handleScan}
+        title="Scan Invoice untuk Pengambilan"
+      />
     </KasirLayout>
   );
 }

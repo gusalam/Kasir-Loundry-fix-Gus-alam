@@ -84,6 +84,36 @@ export default defineConfig(({ mode }) => ({
                 statuses: [0, 200]
               }
             }
+          },
+          // Cache Supabase API for services (read-only data)
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/services.*/i,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "supabase-services-cache",
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 // 1 hour
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          // Cache Supabase API for customers
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/customers.*/i,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "supabase-customers-cache",
+              expiration: {
+                maxEntries: 500,
+                maxAgeSeconds: 60 * 30 // 30 minutes
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
           }
         ],
         navigateFallback: "/offline.html",

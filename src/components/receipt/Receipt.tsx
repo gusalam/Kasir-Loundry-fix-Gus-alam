@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Droplets } from 'lucide-react';
+import { InvoiceQRCode } from '@/components/qrcode/InvoiceQRCode';
 
 interface ReceiptItem {
   service_name: string;
@@ -35,6 +36,7 @@ interface ReceiptProps {
   footerText?: string;
   showLogo?: boolean;
   paperSize?: string;
+  showQRCode?: boolean;
 }
 
 const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({
@@ -45,6 +47,7 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({
   footerText = 'Terima kasih atas kepercayaan Anda!',
   showLogo = true,
   paperSize = '58mm',
+  showQRCode = true,
 }, ref) => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -229,6 +232,17 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({
         <div className="border-b border-dashed border-foreground/70 pb-3 mb-3">
           <p className="font-bold">Catatan:</p>
           <p className={paperSize === '58mm' ? 'text-[8px]' : 'text-[10px]'}>{data.notes}</p>
+        </div>
+      )}
+
+      {/* QR Code */}
+      {showQRCode && (
+        <div className="flex justify-center my-3">
+          <InvoiceQRCode 
+            invoiceNumber={data.invoice_number} 
+            size={paperSize === '58mm' ? 60 : 80}
+            showLabel={false}
+          />
         </div>
       )}
 
