@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { KasirLayout } from '@/components/kasir/KasirLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,9 @@ import {
   CheckCircle,
   Phone,
   QrCode,
+  CreditCard,
+  Printer,
+  AlertCircle,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -28,6 +31,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { QRScanner } from '@/components/qrcode/QRScanner';
+import { ReceiptModal } from '@/components/receipt/ReceiptModal';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
@@ -37,23 +41,91 @@ interface Transaction {
   total_amount: number;
   paid_amount: number;
   payment_status: string;
+  status: string;
   created_at: string;
   customers: { name: string; phone: string } | null;
 }
 
+interface ScannedTransaction extends Transaction {
+  items?: { service_name: string; qty: number; price: number; subtotal: number }[];
+}
+
 export default function KasirPickup() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [pickupId, setPickupId] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  
+  // Smart action states
+  const [scannedTx, setScannedTx] = useState<ScannedTransaction | null>(null);
+  const [showActionDialog, setShowActionDialog] = useState(false);
+  const [actionType, setActionType] = useState<'payment' | 'pickup' | 'info' | null>(null);
+  const [showReceipt, setShowReceipt] = useState(false);
 
   useEffect(() => {
     fetchTransactions();
   }, []);
+
+  // Handle scanned invoice from URL
+  useEffect(() => {
+    const invoiceParam = searchParams.get('invoice');
+    if (invoiceParam) {
+      handleScannedInvoice(invoiceParam);
+      // Clear the URL param
+      setSearchParams({});
+    }
+  }, [searchParams]);
+
+  // Handle scanned invoice from URL or scan
+  const handleScannedInvoice = async (invoice: string) => {
+    try {
+      // Fetch full transaction data
+      const { data: tx, error } = await supabase
+        .from('transactions')
+        .select(`
+          *,
+          customers (name, phone),
+          transaction_items (service_name, qty, price, subtotal)
+        `)
+        .eq('invoice_number', invoice)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!tx) {
+        toast.error('Invoice tidak ditemukan');
+        setActionType(null);
+        return;
+      }
+
+      setScannedTx(tx as ScannedTransaction);
+
+      // Determine action based on status and payment
+      if (tx.status === 'diambil') {
+        setActionType('info');
+        toast.info('Transaksi ini sudah diambil sebelumnya');
+      } else if (tx.payment_status !== 'lunas') {
+        setActionType('payment');
+        toast.info('Pembayaran belum lunas');
+      } else if (tx.status === 'selesai') {
+        setActionType('pickup');
+        toast.success('Invoice ditemukan - siap diambil');
+      } else {
+        setActionType('info');
+        toast.warning(`Status transaksi: ${tx.status}`);
+      }
+
+      setShowActionDialog(true);
+    } catch (error: any) {
+      toast.error('Gagal memuat data transaksi');
+      console.error(error);
+    }
+  };
 
   const fetchTransactions = async () => {
     setIsLoading(true);
@@ -90,12 +162,36 @@ export default function KasirPickup() {
       if (error) throw error;
 
       toast.success('Status berhasil diupdate ke Diambil');
+      setShowReceipt(true); // Auto show receipt after pickup
       fetchTransactions();
     } catch (error: any) {
       toast.error('Gagal update status: ' + error.message);
     } finally {
       setIsProcessing(false);
       setPickupId(null);
+    }
+  };
+
+  const handleScannedPickup = async () => {
+    if (!scannedTx || !user) return;
+
+    setIsProcessing(true);
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .update({ status: 'diambil' as any })
+        .eq('id', scannedTx.id);
+
+      if (error) throw error;
+
+      toast.success('Status berhasil diupdate ke Diambil');
+      setShowActionDialog(false);
+      setShowReceipt(true); // Auto show receipt
+      fetchTransactions();
+    } catch (error: any) {
+      toast.error('Gagal update status: ' + error.message);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -116,43 +212,50 @@ export default function KasirPickup() {
     return variants[status] || 'default';
   };
 
+  const getStatusLabel = (status: string): string => {
+    const labels: Record<string, string> = {
+      diterima: 'Diterima',
+      diproses: 'Diproses',
+      qc: 'QC',
+      selesai: 'Selesai',
+      diambil: 'Sudah Diambil',
+    };
+    return labels[status] || status;
+  };
+
   const filteredTransactions = transactions.filter(t =>
     t.invoice_number.toLowerCase().includes(search.toLowerCase()) ||
     t.customers?.name?.toLowerCase().includes(search.toLowerCase()) ||
     t.customers?.phone?.includes(search)
   );
 
-  const handleScan = async (data: { invoice: string; rawData: string }) => {
+  const handleScan = (data: { invoice: string; rawData: string }) => {
     setShowScanner(false);
-    // Search for the scanned invoice
-    const found = transactions.find(t => 
-      t.invoice_number.toLowerCase() === data.invoice.toLowerCase()
-    );
-    
-    if (found) {
-      setPickupId(found.id);
-      toast.success(`Invoice ${data.invoice} ditemukan!`);
-    } else {
-      // Try to find in all transactions
-      const { data: allTx, error } = await supabase
-        .from('transactions')
-        .select('id, invoice_number, status')
-        .eq('invoice_number', data.invoice)
-        .maybeSingle();
-      
-      if (allTx) {
-        if (allTx.status === 'diambil') {
-          toast.error('Transaksi ini sudah diambil sebelumnya');
-        } else if (allTx.status === 'selesai') {
-          setPickupId(allTx.id);
-          toast.success(`Invoice ${data.invoice} ditemukan!`);
-        } else {
-          toast.warning(`Invoice ditemukan tapi status: ${allTx.status}`);
-        }
-      } else {
-        toast.error('Invoice tidak ditemukan');
-      }
-    }
+    handleScannedInvoice(data.invoice);
+  };
+
+  // Build receipt data from scanned transaction
+  const getReceiptData = () => {
+    if (!scannedTx) return null;
+    return {
+      invoice_number: scannedTx.invoice_number,
+      created_at: scannedTx.created_at,
+      customer_name: scannedTx.customers?.name || 'Walk-in',
+      customer_phone: scannedTx.customers?.phone || undefined,
+      items: scannedTx.items?.map(item => ({
+        service_name: item.service_name,
+        qty: item.qty,
+        price: item.price,
+        subtotal: item.subtotal,
+      })) || [],
+      total_amount: Number(scannedTx.total_amount),
+      paid_amount: Number(scannedTx.paid_amount),
+      cash_received: Number(scannedTx.paid_amount),
+      change_amount: 0,
+      payment_method: 'cash',
+      payment_status: scannedTx.payment_status,
+      order_status: scannedTx.status,
+    };
   };
 
   return (
@@ -261,7 +364,7 @@ export default function KasirPickup() {
         </div>
       )}
 
-      {/* Confirm Dialog */}
+      {/* Confirm Pickup Dialog (from list) */}
       <AlertDialog open={!!pickupId} onOpenChange={() => setPickupId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -286,6 +389,105 @@ export default function KasirPickup() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Smart Action Dialog (from scan) */}
+      <AlertDialog open={showActionDialog} onOpenChange={setShowActionDialog}>
+        <AlertDialogContent className="max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              {actionType === 'payment' && <CreditCard className="h-5 w-5 text-warning" />}
+              {actionType === 'pickup' && <Package className="h-5 w-5 text-success" />}
+              {actionType === 'info' && <AlertCircle className="h-5 w-5 text-muted-foreground" />}
+              {scannedTx?.invoice_number}
+            </AlertDialogTitle>
+          </AlertDialogHeader>
+
+          {scannedTx && (
+            <div className="space-y-4">
+              {/* Customer Info */}
+              <div className="p-4 bg-muted/50 rounded-xl space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Customer</span>
+                  <span className="font-medium">{scannedTx.customers?.name || 'Walk-in'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Status</span>
+                  <Badge variant={scannedTx.status === 'diambil' ? 'completed' : 'ready'}>
+                    {getStatusLabel(scannedTx.status)}
+                  </Badge>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Total</span>
+                  <span className="font-bold">{formatCurrency(Number(scannedTx.total_amount))}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Dibayar</span>
+                  <span className={scannedTx.payment_status === 'lunas' ? 'text-success' : 'text-warning'}>
+                    {formatCurrency(Number(scannedTx.paid_amount))}
+                  </span>
+                </div>
+                {scannedTx.payment_status !== 'lunas' && (
+                  <div className="flex justify-between text-sm pt-2 border-t">
+                    <span className="text-warning font-medium">Sisa Bayar</span>
+                    <span className="text-warning font-bold">
+                      {formatCurrency(Number(scannedTx.total_amount) - Number(scannedTx.paid_amount))}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Message */}
+              <AlertDialogDescription className="text-center">
+                {actionType === 'payment' && 'Customer perlu menyelesaikan pembayaran terlebih dahulu.'}
+                {actionType === 'pickup' && 'Konfirmasi pengambilan cucian oleh customer?'}
+                {actionType === 'info' && 'Transaksi ini sudah diambil atau masih dalam proses.'}
+              </AlertDialogDescription>
+            </div>
+          )}
+
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            {actionType === 'payment' && (
+              <Button 
+                className="w-full h-12" 
+                onClick={() => {
+                  setShowActionDialog(false);
+                  navigate(`/kasir/transaksi-baru?payment=${scannedTx?.id}`);
+                }}
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Proses Pembayaran
+              </Button>
+            )}
+            {actionType === 'pickup' && (
+              <>
+                <Button 
+                  className="w-full h-12" 
+                  onClick={handleScannedPickup}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                  )}
+                  Konfirmasi Pengambilan
+                </Button>
+              </>
+            )}
+            {actionType === 'info' && (
+              <Button 
+                variant="outline" 
+                className="w-full h-12"
+                onClick={() => setShowReceipt(true)}
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Cetak Struk
+              </Button>
+            )}
+            <AlertDialogCancel className="w-full h-12 mt-0">Tutup</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* QR Scanner */}
       <QRScanner
         isOpen={showScanner}
@@ -293,6 +495,18 @@ export default function KasirPickup() {
         onScan={handleScan}
         title="Scan Invoice untuk Pengambilan"
       />
+
+      {/* Receipt Modal */}
+      {scannedTx && getReceiptData() && (
+        <ReceiptModal
+          open={showReceipt}
+          onClose={() => {
+            setShowReceipt(false);
+            setScannedTx(null);
+          }}
+          data={getReceiptData()!}
+        />
+      )}
     </KasirLayout>
   );
 }
