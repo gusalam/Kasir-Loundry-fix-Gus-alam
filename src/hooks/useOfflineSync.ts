@@ -15,7 +15,7 @@ interface SyncStatus {
 export function useOfflineSync() {
   const { user } = useAuth();
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({
-    isOnline: navigator.onLine,
+    isOnline: true, // Assume online initially, don't rely on navigator.onLine
     isSyncing: false,
     pendingCount: 0,
     lastSyncTime: null,

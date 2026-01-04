@@ -116,8 +116,10 @@ export default defineConfig(({ mode }) => ({
             }
           }
         ],
-        navigateFallback: "/offline.html",
-        navigateFallbackDenylist: [/^\/api/]
+        // Only show offline.html when truly offline and no cached page available
+        navigateFallback: null,
+        // Skip navigation fallback - let the app handle offline state gracefully
+        offlineGoogleAnalytics: false
       },
       devOptions: {
         enabled: false
