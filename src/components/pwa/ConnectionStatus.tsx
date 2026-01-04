@@ -1,37 +1,78 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Wifi, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Actually check connectivity by pinging a resource
+const checkRealConnectivity = async (): Promise<boolean> => {
+  try {
+    // Try to fetch a small resource with a timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const response = await fetch('/logo.png', {
+      method: 'HEAD',
+      cache: 'no-store',
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    return response.ok;
+  } catch {
+    return false;
+  }
+};
+
 export const ConnectionStatus = () => {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(true); // Assume online initially
   const [showStatus, setShowStatus] = useState(false);
 
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
+  const verifyConnection = useCallback(async () => {
+    if (!navigator.onLine) {
+      setIsOnline(false);
       setShowStatus(true);
-      // Hide the "online" indicator after 3 seconds
-      setTimeout(() => setShowStatus(false), 3000);
+      return;
+    }
+    
+    // Double-check with actual request
+    const reallyOnline = await checkRealConnectivity();
+    setIsOnline(reallyOnline);
+    
+    if (!reallyOnline) {
+      setShowStatus(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleOnline = async () => {
+      // Verify before showing online
+      const reallyOnline = await checkRealConnectivity();
+      setIsOnline(reallyOnline);
+      
+      if (reallyOnline) {
+        setShowStatus(true);
+        setTimeout(() => setShowStatus(false), 3000);
+      }
     };
 
     const handleOffline = () => {
       setIsOnline(false);
-      setShowStatus(true); // Always show when offline
+      setShowStatus(true);
     };
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // Show initially if offline
+    // Initial check - only verify if browser says offline
     if (!navigator.onLine) {
       setShowStatus(true);
+      setIsOnline(false);
     }
 
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, []);
+  }, [verifyConnection]);
 
   // Always show if offline, otherwise only show temporarily when coming back online
   if (!showStatus && isOnline) {
