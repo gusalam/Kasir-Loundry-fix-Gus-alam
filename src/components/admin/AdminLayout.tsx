@@ -102,6 +102,16 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
               </p>
             </div>
           </div>
+          
+          {/* Logout Button in Header */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowLogoutDialog(true)}
+            className="text-muted-foreground hover:text-destructive"
+          >
+            <LogOut className="h-5 w-5" />
+          </Button>
         </div>
       </header>
 
