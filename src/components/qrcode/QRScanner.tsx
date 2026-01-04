@@ -8,13 +8,14 @@ import { Camera, X, QrCode, Loader2, ScanLine } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface QRScannerProps {
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   onScan: (data: { invoice: string; rawData: string }) => void;
   title?: string;
+  fullscreen?: boolean;
 }
 
-export function QRScanner({ isOpen, onClose, onScan, title = 'Scan QR Invoice' }: QRScannerProps) {
+export function QRScanner({ isOpen = true, onClose, onScan, title = 'Scan QR Invoice', fullscreen = false }: QRScannerProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -120,6 +121,99 @@ export function QRScanner({ isOpen, onClose, onScan, title = 'Scan QR Invoice' }
     onClose();
   };
 
+  // Fullscreen mode for mobile
+  if (fullscreen) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-black flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 bg-black/50 backdrop-blur-sm">
+          <div className="flex items-center gap-2 text-white">
+            <QrCode className="h-5 w-5" />
+            <span className="font-semibold">{title}</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleClose}
+            className="text-white hover:bg-white/20"
+          >
+            <X className="h-6 w-6" />
+          </Button>
+        </div>
+
+        {/* Scanner */}
+        <div className="flex-1 relative">
+          <div
+            id="qr-scanner-container"
+            ref={scannerContainerRef}
+            className="w-full h-full"
+          />
+
+          {/* Scanning Overlay */}
+          {isScanning && (
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+              <div className="w-72 h-72 relative">
+                {/* Corner guides */}
+                <div className="absolute top-0 left-0 w-10 h-10 border-l-4 border-t-4 border-primary rounded-tl-xl" />
+                <div className="absolute top-0 right-0 w-10 h-10 border-r-4 border-t-4 border-primary rounded-tr-xl" />
+                <div className="absolute bottom-0 left-0 w-10 h-10 border-l-4 border-b-4 border-primary rounded-bl-xl" />
+                <div className="absolute bottom-0 right-0 w-10 h-10 border-r-4 border-b-4 border-primary rounded-br-xl" />
+                
+                {/* Scanning Line */}
+                <motion.div
+                  className="absolute left-2 right-2 h-1 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full shadow-lg shadow-primary/50"
+                  initial={{ top: '10%' }}
+                  animate={{ top: '90%' }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    repeatType: 'reverse',
+                    ease: 'easeInOut',
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {!isScanning && !error && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/80">
+              <div className="text-center text-white">
+                <Loader2 className="h-10 w-10 animate-spin mx-auto mb-3" />
+                <p className="text-base">Memuat kamera...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/90 p-6">
+              <div className="text-center text-white max-w-xs">
+                <Camera className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-base text-destructive mb-6">{error}</p>
+                <Button
+                  size="lg"
+                  className="h-14 px-8 rounded-xl"
+                  onClick={startScanning}
+                >
+                  Coba Lagi
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Instructions */}
+        <div className="p-6 bg-black/50 backdrop-blur-sm">
+          <p className="text-base text-center text-white/80">
+            Arahkan kamera ke QR code atau barcode pada struk
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Dialog mode for desktop
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="sm:max-w-md p-0 overflow-hidden">

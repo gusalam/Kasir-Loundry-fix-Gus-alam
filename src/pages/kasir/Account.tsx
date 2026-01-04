@@ -15,13 +15,23 @@ import {
   Loader2,
   Shield,
   Smartphone,
+  Printer,
+  Bluetooth,
+  WifiOff,
+  CheckCircle,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useBluetoothPrinter } from '@/hooks/useBluetoothPrinter';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { PrinterSettings } from '@/components/printer/PrinterSettings';
 
 export default function KasirAccount() {
   const { user, profile, refreshProfile } = useAuth();
+  const { status, connect, printTestPage } = useBluetoothPrinter();
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [showPrinterSettings, setShowPrinterSettings] = useState(false);
+  const [autoPrint, setAutoPrint] = useState(false);
   const [name, setName] = useState(profile?.name || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -191,6 +201,76 @@ export default function KasirAccount() {
                 </>
               )}
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Printer Card */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Printer className="h-4 w-4" />
+              Printer Bluetooth
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  status.isConnected ? 'bg-success/10' : 'bg-muted'
+                }`}>
+                  {status.isConnected ? (
+                    <CheckCircle className="h-5 w-5 text-success" />
+                  ) : (
+                    <WifiOff className="h-5 w-5 text-muted-foreground" />
+                  )}
+                </div>
+                <div>
+                  <p className="font-medium text-sm">
+                    {status.isConnected ? status.deviceName : 'Tidak terhubung'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {status.isConnected ? 'Siap mencetak' : 'Hubungkan printer'}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant={status.isConnected ? 'outline' : 'default'}
+                size="sm"
+                onClick={connect}
+                disabled={status.isConnecting}
+              >
+                {status.isConnecting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Bluetooth className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+
+            {status.isConnected && (
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={printTestPage}
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Test Print
+              </Button>
+            )}
+
+            <Sheet open={showPrinterSettings} onOpenChange={setShowPrinterSettings}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" className="w-full text-muted-foreground">
+                  Pengaturan Lanjutan
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="rounded-t-3xl">
+                <SheetHeader>
+                  <SheetTitle>Pengaturan Printer</SheetTitle>
+                </SheetHeader>
+                <PrinterSettings autoPrint={autoPrint} onAutoPrintChange={setAutoPrint} />
+              </SheetContent>
+            </Sheet>
           </CardContent>
         </Card>
 
