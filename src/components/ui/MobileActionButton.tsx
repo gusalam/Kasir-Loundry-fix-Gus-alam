@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ChevronRight } from 'lucide-react';
+import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 
 interface MobileActionButtonProps {
   children: ReactNode;
@@ -12,6 +13,7 @@ interface MobileActionButtonProps {
   showArrow?: boolean;
   disabled?: boolean;
   className?: string;
+  haptic?: boolean;
 }
 
 const variantStyles = {
@@ -37,10 +39,19 @@ export function MobileActionButton({
   showArrow,
   disabled,
   className,
+  haptic = true,
 }: MobileActionButtonProps) {
+  const { impactLight } = useHapticFeedback();
+
+  const handleClick = () => {
+    if (disabled) return;
+    if (haptic) impactLight();
+    onClick?.();
+  };
+
   return (
     <motion.button
-      onClick={onClick}
+      onClick={handleClick}
       disabled={disabled}
       className={cn(
         'w-full flex items-center justify-center gap-3 rounded-2xl font-semibold',

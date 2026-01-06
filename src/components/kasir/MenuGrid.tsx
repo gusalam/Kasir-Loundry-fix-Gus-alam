@@ -9,6 +9,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 
 interface MenuItem {
   icon: ReactNode;
@@ -19,7 +20,6 @@ interface MenuItem {
   description?: string;
 }
 
-// Menu items yang menggantikan sidebar lama
 const menuItems: MenuItem[] = [
   {
     icon: <LayoutDashboard className="h-7 w-7" />,
@@ -80,6 +80,12 @@ const itemVariants = {
 
 export function MenuGrid() {
   const navigate = useNavigate();
+  const { impactLight } = useHapticFeedback();
+
+  const handleMenuClick = (path: string) => {
+    impactLight();
+    navigate(path);
+  };
 
   return (
     <motion.div
@@ -93,7 +99,7 @@ export function MenuGrid() {
           key={item.path}
           variants={itemVariants}
           whileTap={{ scale: 0.95 }}
-          onClick={() => navigate(item.path)}
+          onClick={() => handleMenuClick(item.path)}
           className={cn(
             'flex flex-col items-center justify-center p-4 rounded-2xl',
             'border border-border bg-card shadow-sm',

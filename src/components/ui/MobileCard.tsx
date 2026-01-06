@@ -2,20 +2,30 @@ import { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ChevronRight } from 'lucide-react';
+import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 
 interface MobileCardProps {
   children: ReactNode;
   onClick?: () => void;
   className?: string;
   showArrow?: boolean;
+  haptic?: boolean;
 }
 
-export function MobileCard({ children, onClick, className, showArrow }: MobileCardProps) {
+export function MobileCard({ children, onClick, className, showArrow, haptic = true }: MobileCardProps) {
+  const { impactLight } = useHapticFeedback();
   const Component = onClick ? motion.button : motion.div;
+  
+  const handleClick = () => {
+    if (onClick) {
+      if (haptic) impactLight();
+      onClick();
+    }
+  };
   
   return (
     <Component
-      onClick={onClick}
+      onClick={handleClick}
       className={cn(
         'w-full p-4 rounded-2xl bg-card border border-border text-left',
         'transition-all duration-200 shadow-card',
