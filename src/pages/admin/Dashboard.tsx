@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { MobileStatCard } from '@/components/dashboard/MobileStatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { PullToRefresh } from '@/components/ui/PullToRefresh';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -17,13 +18,12 @@ import {
   Loader2,
   AlertTriangle,
   RefreshCw,
-  Eye,
   ArrowRight,
-  Plus,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 
 interface DashboardStats {
   ordersToday: number;
@@ -79,7 +79,7 @@ export default function AdminDashboard() {
     };
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setError(null);
       
@@ -147,6 +147,11 @@ export default function AdminDashboard() {
     } finally {
       setIsLoading(false);
     }
+  }, []);
+
+  const handleRefresh = async () => {
+    await fetchDashboardData();
+    toast.success('Data berhasil diperbarui');
   };
 
   const formatCurrency = (amount: number) => {
@@ -207,6 +212,7 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout title="Dashboard">
+      <PullToRefresh onRefresh={handleRefresh}>
       <div className="space-y-6">
         {/* Greeting */}
         <motion.div
@@ -339,8 +345,9 @@ export default function AdminDashboard() {
               </div>
             )}
           </CardContent>
-        </Card>
+      </Card>
       </div>
+      </PullToRefresh>
     </AdminLayout>
   );
 }
