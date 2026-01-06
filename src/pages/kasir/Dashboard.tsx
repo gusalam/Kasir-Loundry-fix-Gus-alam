@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { KasirLayout } from '@/components/kasir/KasirLayout';
 import { MobileStatCard } from '@/components/dashboard/MobileStatCard';
+import { PullToRefresh } from '@/components/ui/PullToRefresh';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,7 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 
 interface DashboardStats {
   ordersToday: number;
@@ -72,7 +74,7 @@ export default function KasirDashboard() {
     }
   }, [userId]);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setError(null);
       
@@ -153,7 +155,7 @@ export default function KasirDashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -211,144 +213,151 @@ export default function KasirDashboard() {
     );
   }
 
+  const handleRefresh = useCallback(async () => {
+    await fetchDashboardData();
+    toast.success('Data diperbarui');
+  }, [fetchDashboardData]);
+
   return (
     <KasirLayout>
-      <div className="space-y-6">
-        {/* Greeting */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <h2 className="text-xl font-bold text-foreground">
-            Halo, {displayName} 👋
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Ringkasan transaksi Anda hari ini
-          </p>
-        </motion.div>
+      <PullToRefresh onRefresh={handleRefresh} className="h-full -mx-4 px-4">
+        <div className="space-y-6 pb-6">
+          {/* Greeting */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <h2 className="text-xl font-bold text-foreground">
+              Halo, {displayName} 👋
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Ringkasan transaksi Anda hari ini
+            </p>
+          </motion.div>
 
-        {/* Stats Grid - 2 columns */}
-        <div className="grid grid-cols-2 gap-3">
-          <MobileStatCard
-            title="Order Hari Ini"
-            value={stats.ordersToday}
-            subtitle="transaksi Anda"
-            icon={<ShoppingCart className="h-5 w-5" />}
-            variant="primary"
-          />
-          <MobileStatCard
-            title="Uang Masuk"
-            value={formatCurrency(stats.revenueToday)}
-            subtitle="hari ini"
-            icon={<TrendingUp className="h-5 w-5" />}
-            variant="success"
-          />
-          <MobileStatCard
-            title="Belum Diambil"
-            value={stats.pendingPickup}
-            subtitle="siap diambil"
-            icon={<Package className="h-5 w-5" />}
-            variant="warning"
-            onClick={() => navigate('/kasir/pengambilan')}
-          />
-          <MobileStatCard
-            title="Dalam Proses"
-            value={stats.inProgress}
-            subtitle="sedang dikerjakan"
-            icon={<Clock className="h-5 w-5" />}
-            variant="info"
-            onClick={() => navigate('/kasir/daftar-transaksi')}
-          />
-        </div>
+          {/* Stats Grid - 2 columns */}
+          <div className="grid grid-cols-2 gap-3">
+            <MobileStatCard
+              title="Order Hari Ini"
+              value={stats.ordersToday}
+              subtitle="transaksi Anda"
+              icon={<ShoppingCart className="h-5 w-5" />}
+              variant="primary"
+            />
+            <MobileStatCard
+              title="Uang Masuk"
+              value={formatCurrency(stats.revenueToday)}
+              subtitle="hari ini"
+              icon={<TrendingUp className="h-5 w-5" />}
+              variant="success"
+            />
+            <MobileStatCard
+              title="Belum Diambil"
+              value={stats.pendingPickup}
+              subtitle="siap diambil"
+              icon={<Package className="h-5 w-5" />}
+              variant="warning"
+              onClick={() => navigate('/kasir/pengambilan')}
+            />
+            <MobileStatCard
+              title="Dalam Proses"
+              value={stats.inProgress}
+              subtitle="sedang dikerjakan"
+              icon={<Clock className="h-5 w-5" />}
+              variant="info"
+              onClick={() => navigate('/kasir/daftar-transaksi')}
+            />
+          </div>
 
-        {/* Quick Actions */}
-        <div>
-          <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-            Aksi Cepat
-          </h3>
-          <div className="grid grid-cols-1 gap-3">
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              onClick={() => navigate('/kasir/transaksi-baru')}
-              className="w-full h-14 bg-gradient-primary text-primary-foreground rounded-2xl flex items-center justify-center gap-3 font-semibold shadow-lg active:scale-[0.98] touch-manipulation"
-            >
-              <Plus className="h-6 w-6" />
-              Transaksi Baru
-            </motion.button>
-            
-            <div className="grid grid-cols-2 gap-3">
+          {/* Quick Actions */}
+          <div>
+            <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+              Aksi Cepat
+            </h3>
+            <div className="grid grid-cols-1 gap-3">
               <motion.button
                 whileTap={{ scale: 0.98 }}
-                onClick={() => navigate('/kasir/pengambilan')}
-                className="h-14 bg-card border-2 border-border text-foreground rounded-2xl flex items-center justify-center gap-2 font-medium active:scale-[0.98] touch-manipulation"
+                onClick={() => navigate('/kasir/transaksi-baru')}
+                className="w-full h-14 bg-gradient-primary text-primary-foreground rounded-2xl flex items-center justify-center gap-3 font-semibold shadow-lg active:scale-[0.98] touch-manipulation"
               >
-                <Truck className="h-5 w-5 text-success" />
-                Pengambilan
+                <Plus className="h-6 w-6" />
+                Transaksi Baru
               </motion.button>
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                onClick={() => navigate('/kasir/tutup-kas')}
-                className="h-14 bg-card border-2 border-border text-foreground rounded-2xl flex items-center justify-center gap-2 font-medium active:scale-[0.98] touch-manipulation"
-              >
-                <ClipboardList className="h-5 w-5 text-warning" />
-                Tutup Kas
-              </motion.button>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigate('/kasir/pengambilan')}
+                  className="h-14 bg-card border-2 border-border text-foreground rounded-2xl flex items-center justify-center gap-2 font-medium active:scale-[0.98] touch-manipulation"
+                >
+                  <Truck className="h-5 w-5 text-success" />
+                  Pengambilan
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigate('/kasir/tutup-kas')}
+                  className="h-14 bg-card border-2 border-border text-foreground rounded-2xl flex items-center justify-center gap-2 font-medium active:scale-[0.98] touch-manipulation"
+                >
+                  <ClipboardList className="h-5 w-5 text-warning" />
+                  Tutup Kas
+                </motion.button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Recent Transactions */}
-        <Card className="shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
-            <CardTitle className="text-base">Transaksi Terakhir</CardTitle>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="text-xs"
-              onClick={() => navigate('/kasir/daftar-transaksi')}
-            >
-              Semua
-              <ArrowRight className="h-3 w-3 ml-1" />
-            </Button>
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            {recentTransactions.length === 0 ? (
-              <div className="text-center py-6">
-                <ShoppingCart className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Belum ada transaksi hari ini</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {recentTransactions.slice(0, 5).map((trans) => (
-                  <motion.div
-                    key={trans.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex items-center justify-between p-3 bg-muted/50 rounded-xl"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {trans.invoice_number}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {trans.customers?.name || 'Walk-in'} • {format(new Date(trans.created_at), 'HH:mm', { locale: id })}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 ml-2">
-                      <Badge variant={getStatusBadge(trans.status) as any} className="text-[10px]">
-                        {getStatusLabel(trans.status)}
-                      </Badge>
-                      <p className="font-semibold text-sm whitespace-nowrap">
-                        {formatCurrency(Number(trans.total_amount))}
-                      </p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          {/* Recent Transactions */}
+          <Card className="shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
+              <CardTitle className="text-base">Transaksi Terakhir</CardTitle>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-xs"
+                onClick={() => navigate('/kasir/daftar-transaksi')}
+              >
+                Semua
+                <ArrowRight className="h-3 w-3 ml-1" />
+              </Button>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              {recentTransactions.length === 0 ? (
+                <div className="text-center py-6">
+                  <ShoppingCart className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Belum ada transaksi hari ini</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {recentTransactions.slice(0, 5).map((trans) => (
+                    <motion.div
+                      key={trans.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-xl"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">
+                          {trans.invoice_number}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {trans.customers?.name || 'Walk-in'} • {format(new Date(trans.created_at), 'HH:mm', { locale: id })}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 ml-2">
+                        <Badge variant={getStatusBadge(trans.status) as any} className="text-[10px]">
+                          {getStatusLabel(trans.status)}
+                        </Badge>
+                        <p className="font-semibold text-sm whitespace-nowrap">
+                          {formatCurrency(Number(trans.total_amount))}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </PullToRefresh>
     </KasirLayout>
   );
 }
