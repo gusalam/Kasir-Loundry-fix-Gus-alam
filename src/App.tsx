@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { SwipeBackNavigation } from "@/components/gestures/SwipeBackNavigation";
 import { AnimatePresence, motion } from "framer-motion";
 
 // Auth pages
@@ -113,18 +114,19 @@ function AnimatedRoutes() {
   const location = useLocation();
   
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={location.pathname}
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: -20 }}
-        transition={{ 
-          type: 'tween', 
-          ease: 'anticipate', 
-          duration: 0.25 
-        }}
-      >
+    <SwipeBackNavigation>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={location.pathname}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ 
+            type: 'tween', 
+            ease: 'anticipate', 
+            duration: 0.25 
+          }}
+        >
         <Routes location={location}>
           {/* Public routes */}
           <Route path="/" element={<PublicRoute><Home /></PublicRoute>} />
@@ -190,9 +192,10 @@ function AnimatedRoutes() {
           
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
-        </Routes>
-      </motion.div>
-    </AnimatePresence>
+          </Routes>
+        </motion.div>
+      </AnimatePresence>
+    </SwipeBackNavigation>
   );
 }
 
