@@ -21,7 +21,10 @@ import {
   Phone,
   Loader2,
   ShoppingCart,
+  ScanBarcode,
 } from 'lucide-react';
+import { QRScanner } from '@/components/qrcode/QRScanner';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Dialog,
   DialogContent,
@@ -83,6 +86,8 @@ export default function KasirNewTransaction() {
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [showCheckoutConfirm, setShowCheckoutConfirm] = useState(false);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchData();
@@ -114,6 +119,32 @@ export default function KasirNewTransaction() {
       ));
     } else {
       setCart([...cart, { service, qty: 1, subtotal: service.price }]);
+    }
+  };
+
+  const handleBarcodeScan = (data: { invoice: string; rawData: string }) => {
+    setShowBarcodeScanner(false);
+    
+    // Try to find service by name or ID from barcode
+    const scannedValue = data.invoice.toLowerCase().trim();
+    
+    // Try matching by service ID first (if barcode contains numeric ID)
+    const numericId = parseInt(scannedValue, 10);
+    let foundService = services.find(s => s.id === numericId);
+    
+    // If not found by ID, try matching by name
+    if (!foundService) {
+      foundService = services.find(s => 
+        s.name.toLowerCase() === scannedValue ||
+        s.name.toLowerCase().includes(scannedValue)
+      );
+    }
+    
+    if (foundService) {
+      addToCart(foundService);
+      toast.success(`${foundService.name} ditambahkan ke keranjang`);
+    } else {
+      toast.error(`Layanan "${data.invoice}" tidak ditemukan`);
     }
   };
 
@@ -440,8 +471,17 @@ export default function KasirNewTransaction() {
 
           {/* Services - Kasir cannot edit prices */}
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">Pilih Layanan</CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowBarcodeScanner(true)}
+                className="gap-2"
+              >
+                <ScanBarcode className="h-4 w-4" />
+                Scan
+              </Button>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Search Input */}
@@ -774,6 +814,17 @@ export default function KasirNewTransaction() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Barcode Scanner */}
+      {showBarcodeScanner && (
+        <QRScanner
+          isOpen={showBarcodeScanner}
+          onClose={() => setShowBarcodeScanner(false)}
+          onScan={handleBarcodeScan}
+          title="Scan Barcode Layanan"
+          fullscreen={isMobile}
+        />
+      )}
 
       {/* Receipt Modal */}
       <ReceiptModal
