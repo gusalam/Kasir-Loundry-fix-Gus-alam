@@ -157,6 +157,11 @@ export default function KasirDashboard() {
     }
   }, [userId]);
 
+  const handleRefresh = useCallback(async () => {
+    await fetchDashboardData();
+    toast.success('Data diperbarui');
+  }, [fetchDashboardData]);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -212,11 +217,6 @@ export default function KasirDashboard() {
       </KasirLayout>
     );
   }
-
-  const handleRefresh = useCallback(async () => {
-    await fetchDashboardData();
-    toast.success('Data diperbarui');
-  }, [fetchDashboardData]);
 
   return (
     <KasirLayout>
