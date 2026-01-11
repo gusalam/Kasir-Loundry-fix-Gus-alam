@@ -71,6 +71,7 @@ export default function KasirNewTransaction() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [notes, setNotes] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [serviceSearch, setServiceSearch] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<string>('cash');
   const [paymentType, setPaymentType] = useState<'lunas' | 'dp'>('lunas');
   const [cashReceived, setCashReceived] = useState<string>('');
@@ -443,8 +444,19 @@ export default function KasirNewTransaction() {
               <CardTitle className="text-lg">Pilih Layanan</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Search Input */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Cari nama layanan..."
+                  value={serviceSearch}
+                  onChange={(e) => setServiceSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
               {/* Category Filter */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Button
                   variant={selectedCategory === 'all' ? 'default' : 'outline'}
                   size="sm"
@@ -471,6 +483,7 @@ export default function KasirNewTransaction() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {services
                   .filter(service => selectedCategory === 'all' || service.type === selectedCategory)
+                  .filter(service => service.name.toLowerCase().includes(serviceSearch.toLowerCase()))
                   .map(service => (
                     <button
                       key={service.id}
@@ -485,7 +498,10 @@ export default function KasirNewTransaction() {
                     </button>
                   ))}
               </div>
-              {services.filter(service => selectedCategory === 'all' || service.type === selectedCategory).length === 0 && (
+              {services
+                .filter(service => selectedCategory === 'all' || service.type === selectedCategory)
+                .filter(service => service.name.toLowerCase().includes(serviceSearch.toLowerCase()))
+                .length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   {selectedCategory === 'all' ? 'Belum ada layanan aktif' : `Belum ada layanan ${selectedCategory}`}
                 </div>
