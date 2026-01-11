@@ -6,7 +6,10 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { SwipeBackNavigation } from "@/components/gestures/SwipeBackNavigation";
+import { ExitConfirmationDialog } from "@/components/app/ExitConfirmationDialog";
+import { useExitConfirmation } from "@/hooks/useExitConfirmation";
 import { AnimatePresence, motion } from "framer-motion";
+import { toast } from "sonner";
 
 // Auth pages
 import Home from "./pages/Home";
@@ -112,90 +115,107 @@ function RoleBasedRedirect() {
 
 function AnimatedRoutes() {
   const location = useLocation();
+  const { 
+    showExitDialog, 
+    handleConfirmExit, 
+    handleCancelExit,
+    isNative 
+  } = useExitConfirmation();
   
   return (
-    <SwipeBackNavigation>
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={location.pathname}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ 
-            type: 'tween', 
-            ease: 'anticipate', 
-            duration: 0.25 
-          }}
-        >
-        <Routes location={location}>
-          {/* Public routes */}
-          <Route path="/" element={<PublicRoute><Home /></PublicRoute>} />
-          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-          
-          {/* Dashboard redirect based on role */}
-          <Route path="/dashboard" element={<RoleBasedRedirect />} />
-          
-          {/* ===== ADMIN ROUTES ===== */}
-          <Route path="/admin/dashboard" element={
-            <ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>
-          } />
-          <Route path="/admin/daftar-transaksi" element={
-            <ProtectedRoute allowedRoles={['admin']}><AdminTransactionList /></ProtectedRoute>
-          } />
-          <Route path="/admin/pengambilan" element={
-            <ProtectedRoute allowedRoles={['admin']}><AdminPickup /></ProtectedRoute>
-          } />
-          <Route path="/admin/tutup-kas" element={
-            <ProtectedRoute allowedRoles={['admin']}><AdminCashClosing /></ProtectedRoute>
-          } />
-          <Route path="/admin/customer" element={
-            <ProtectedRoute allowedRoles={['admin']}><AdminCustomers /></ProtectedRoute>
-          } />
-          <Route path="/admin/layanan" element={
-            <ProtectedRoute allowedRoles={['admin']}><AdminServices /></ProtectedRoute>
-          } />
-          <Route path="/admin/users" element={
-            <ProtectedRoute allowedRoles={['admin']}><AdminUsers /></ProtectedRoute>
-          } />
-          <Route path="/admin/pengeluaran" element={
-            <ProtectedRoute allowedRoles={['admin']}><AdminExpenses /></ProtectedRoute>
-          } />
-          <Route path="/admin/laporan" element={
-            <ProtectedRoute allowedRoles={['admin']}><AdminReports /></ProtectedRoute>
-          } />
-          <Route path="/admin/menu" element={
-            <ProtectedRoute allowedRoles={['admin']}><AdminMenu /></ProtectedRoute>
-          } />
-          <Route path="/admin/pengaturan" element={
-            <ProtectedRoute allowedRoles={['admin']}><AdminSettings /></ProtectedRoute>
-          } />
-          
-          {/* ===== KASIR ROUTES ===== */}
-          <Route path="/kasir/dashboard" element={
-            <ProtectedRoute allowedRoles={['kasir']}><KasirDashboard /></ProtectedRoute>
-          } />
-          <Route path="/kasir/transaksi-baru" element={
-            <ProtectedRoute allowedRoles={['kasir']}><KasirNewTransaction /></ProtectedRoute>
-          } />
-          <Route path="/kasir/daftar-transaksi" element={
-            <ProtectedRoute allowedRoles={['kasir']}><KasirTransactionList /></ProtectedRoute>
-          } />
-          <Route path="/kasir/pengambilan" element={
-            <ProtectedRoute allowedRoles={['kasir']}><KasirPickup /></ProtectedRoute>
-          } />
-          <Route path="/kasir/tutup-kas" element={
-            <ProtectedRoute allowedRoles={['kasir']}><KasirCashClosing /></ProtectedRoute>
-          } />
-          <Route path="/kasir/akun" element={
-            <ProtectedRoute allowedRoles={['kasir']}><KasirAccount /></ProtectedRoute>
-          } />
-          
-          {/* 404 */}
-          <Route path="*" element={<NotFound />} />
-          </Routes>
-        </motion.div>
-      </AnimatePresence>
-    </SwipeBackNavigation>
+    <>
+      <SwipeBackNavigation>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ 
+              type: 'tween', 
+              ease: 'anticipate', 
+              duration: 0.25 
+            }}
+          >
+          <Routes location={location}>
+            {/* Public routes */}
+            <Route path="/" element={<PublicRoute><Home /></PublicRoute>} />
+            <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+            
+            {/* Dashboard redirect based on role */}
+            <Route path="/dashboard" element={<RoleBasedRedirect />} />
+            
+            {/* ===== ADMIN ROUTES ===== */}
+            <Route path="/admin/dashboard" element={
+              <ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>
+            } />
+            <Route path="/admin/daftar-transaksi" element={
+              <ProtectedRoute allowedRoles={['admin']}><AdminTransactionList /></ProtectedRoute>
+            } />
+            <Route path="/admin/pengambilan" element={
+              <ProtectedRoute allowedRoles={['admin']}><AdminPickup /></ProtectedRoute>
+            } />
+            <Route path="/admin/tutup-kas" element={
+              <ProtectedRoute allowedRoles={['admin']}><AdminCashClosing /></ProtectedRoute>
+            } />
+            <Route path="/admin/customer" element={
+              <ProtectedRoute allowedRoles={['admin']}><AdminCustomers /></ProtectedRoute>
+            } />
+            <Route path="/admin/layanan" element={
+              <ProtectedRoute allowedRoles={['admin']}><AdminServices /></ProtectedRoute>
+            } />
+            <Route path="/admin/users" element={
+              <ProtectedRoute allowedRoles={['admin']}><AdminUsers /></ProtectedRoute>
+            } />
+            <Route path="/admin/pengeluaran" element={
+              <ProtectedRoute allowedRoles={['admin']}><AdminExpenses /></ProtectedRoute>
+            } />
+            <Route path="/admin/laporan" element={
+              <ProtectedRoute allowedRoles={['admin']}><AdminReports /></ProtectedRoute>
+            } />
+            <Route path="/admin/menu" element={
+              <ProtectedRoute allowedRoles={['admin']}><AdminMenu /></ProtectedRoute>
+            } />
+            <Route path="/admin/pengaturan" element={
+              <ProtectedRoute allowedRoles={['admin']}><AdminSettings /></ProtectedRoute>
+            } />
+            
+            {/* ===== KASIR ROUTES ===== */}
+            <Route path="/kasir/dashboard" element={
+              <ProtectedRoute allowedRoles={['kasir']}><KasirDashboard /></ProtectedRoute>
+            } />
+            <Route path="/kasir/transaksi-baru" element={
+              <ProtectedRoute allowedRoles={['kasir']}><KasirNewTransaction /></ProtectedRoute>
+            } />
+            <Route path="/kasir/daftar-transaksi" element={
+              <ProtectedRoute allowedRoles={['kasir']}><KasirTransactionList /></ProtectedRoute>
+            } />
+            <Route path="/kasir/pengambilan" element={
+              <ProtectedRoute allowedRoles={['kasir']}><KasirPickup /></ProtectedRoute>
+            } />
+            <Route path="/kasir/tutup-kas" element={
+              <ProtectedRoute allowedRoles={['kasir']}><KasirCashClosing /></ProtectedRoute>
+            } />
+            <Route path="/kasir/akun" element={
+              <ProtectedRoute allowedRoles={['kasir']}><KasirAccount /></ProtectedRoute>
+            } />
+            
+            {/* 404 */}
+            <Route path="*" element={<NotFound />} />
+            </Routes>
+          </motion.div>
+        </AnimatePresence>
+      </SwipeBackNavigation>
+
+      {/* Exit Confirmation Dialog for Native App */}
+      {isNative && (
+        <ExitConfirmationDialog
+          open={showExitDialog}
+          onConfirm={handleConfirmExit}
+          onCancel={handleCancelExit}
+        />
+      )}
+    </>
   );
 }
 
