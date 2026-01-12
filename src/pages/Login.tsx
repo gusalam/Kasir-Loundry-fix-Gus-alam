@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,9 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TropicalBackground } from '@/components/landing/TropicalBackground';
 import { ThemeToggle } from '@/components/landing/ThemeToggle';
-import { Droplets, Eye, EyeOff, Loader2, Mail, Lock, User, ArrowLeft } from 'lucide-react';
+import { BiometricLoginButton } from '@/components/auth/BiometricLoginButton';
+import { Droplets, Eye, EyeOff, Loader2, Mail, Lock, User, ArrowLeft, Fingerprint } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { useBiometricAuth } from '@/hooks/useBiometricAuth';
 
 // Validation schemas
 const loginSchema = z.object({
@@ -46,9 +48,51 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isBiometricLoading, setIsBiometricLoading] = useState(false);
 
   const { login, signUp } = useAuth();
   const navigate = useNavigate();
+  const { 
+    isAvailable: isBiometricAvailable, 
+    isEnabled: isBiometricEnabled, 
+    biometryType,
+    authenticate: authenticateBiometric,
+    enableBiometric,
+    getSavedCredentials
+  } = useBiometricAuth();
+
+  // Auto-trigger biometric on mount if enabled
+  useEffect(() => {
+    if (isBiometricEnabled && isBiometricAvailable) {
+      handleBiometricLogin();
+    }
+  }, [isBiometricEnabled, isBiometricAvailable]);
+
+  const handleBiometricLogin = async () => {
+    const credentials = getSavedCredentials();
+    if (!credentials) {
+      toast.error('Silakan login dengan email terlebih dahulu');
+      return;
+    }
+
+    setIsBiometricLoading(true);
+    setError('');
+
+    try {
+      const success = await authenticateBiometric();
+      if (success) {
+        // Pre-fill the email for convenience
+        setLoginEmail(credentials.email);
+        toast.success('Verifikasi biometrik berhasil! Masukkan password.');
+      } else {
+        toast.error('Verifikasi biometrik gagal');
+      }
+    } catch (err) {
+      toast.error('Verifikasi biometrik gagal');
+    } finally {
+      setIsBiometricLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,7 +112,13 @@ export default function Login() {
       if (error) {
         setError(error);
       } else {
-        toast.success('Login berhasil!');
+        // Enable biometric for next login if available
+        if (isBiometricAvailable && !isBiometricEnabled) {
+          enableBiometric(loginEmail);
+          toast.success('Login berhasil! Login biometrik diaktifkan.');
+        } else {
+          toast.success('Login berhasil!');
+        }
       }
     } catch {
       setError('Terjadi kesalahan. Silakan coba lagi.');
@@ -251,6 +301,25 @@ export default function Login() {
                     'Masuk'
                   )}
                 </Button>
+
+                {/* Biometric Login Button */}
+                {isBiometricAvailable && isBiometricEnabled && (
+                  <div className="mt-4">
+                    <div className="relative my-4">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-border/50" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-card/80 px-2 text-muted-foreground">atau</span>
+                      </div>
+                    </div>
+                    <BiometricLoginButton
+                      biometryType={biometryType}
+                      isLoading={isBiometricLoading}
+                      onClick={handleBiometricLogin}
+                    />
+                  </div>
+                )}
               </form>
             </TabsContent>
 
