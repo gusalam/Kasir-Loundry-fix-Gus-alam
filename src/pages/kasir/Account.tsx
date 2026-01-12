@@ -22,10 +22,13 @@ import {
   CheckCircle,
   Fingerprint,
   ScanFace,
+  Bell,
+  BellOff,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useBluetoothPrinter } from '@/hooks/useBluetoothPrinter';
 import { useBiometricAuth } from '@/hooks/useBiometricAuth';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { PrinterSettings } from '@/components/printer/PrinterSettings';
 
@@ -41,14 +44,38 @@ export default function KasirAccount() {
     disableBiometric,
   } = useBiometricAuth();
   
+  const {
+    isSupported: isPushSupported,
+    isRegistered: isPushRegistered,
+    registerForPush,
+  } = usePushNotifications();
+  
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [showPrinterSettings, setShowPrinterSettings] = useState(false);
   const [autoPrint, setAutoPrint] = useState(false);
+  const [isEnablingPush, setIsEnablingPush] = useState(false);
   const [name, setName] = useState(profile?.name || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  const handleTogglePush = async (enabled: boolean) => {
+    if (enabled) {
+      setIsEnablingPush(true);
+      try {
+        await registerForPush();
+        toast.success('Notifikasi push diaktifkan');
+      } catch (error) {
+        toast.error('Gagal mengaktifkan notifikasi');
+      } finally {
+        setIsEnablingPush(false);
+      }
+    } else {
+      // Note: Disabling push requires unregistering from FCM/APNS
+      toast.info('Untuk menonaktifkan, ubah di pengaturan perangkat');
+    }
+  };
 
   const handleToggleBiometric = (enabled: boolean) => {
     if (enabled) {
@@ -289,6 +316,54 @@ export default function KasirAccount() {
               {isBiometricEnabled && (
                 <p className="text-xs text-muted-foreground text-center">
                   {getBiometricLabel()} akan digunakan untuk verifikasi saat login
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Push Notifications Card - Only show on native platforms */}
+        {isNative && isPushSupported && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Bell className="h-4 w-4" />
+                Notifikasi Push
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    isPushRegistered ? 'bg-primary/10' : 'bg-muted'
+                  }`}>
+                    {isPushRegistered ? (
+                      <Bell className="h-5 w-5 text-primary" />
+                    ) : (
+                      <BellOff className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">
+                      Notifikasi Transaksi
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {isPushRegistered 
+                        ? 'Aktif - terima notifikasi transaksi baru' 
+                        : 'Nonaktif - aktifkan untuk update realtime'}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={isPushRegistered}
+                  onCheckedChange={handleTogglePush}
+                  disabled={isEnablingPush}
+                />
+              </div>
+              
+              {isPushRegistered && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Anda akan menerima notifikasi untuk transaksi baru dan status pickup
                 </p>
               )}
             </CardContent>

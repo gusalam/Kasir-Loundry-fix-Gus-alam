@@ -7,9 +7,11 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { SwipeBackNavigation } from "@/components/gestures/SwipeBackNavigation";
 import { ExitConfirmationDialog } from "@/components/app/ExitConfirmationDialog";
+import { PushNotificationManager } from "@/components/notifications/PushNotificationManager";
 import { useExitConfirmation } from "@/hooks/useExitConfirmation";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
+import { Capacitor } from "@capacitor/core";
 
 // Auth pages
 import Home from "./pages/Home";
@@ -215,6 +217,9 @@ function AnimatedRoutes() {
           onCancel={handleCancelExit}
         />
       )}
+
+      {/* Push Notification Manager for Native App */}
+      {Capacitor.isNativePlatform() && <PushNotificationManager />}
     </>
   );
 }
