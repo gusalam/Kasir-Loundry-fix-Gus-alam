@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -19,15 +20,27 @@ import {
   Bluetooth,
   WifiOff,
   CheckCircle,
+  Fingerprint,
+  ScanFace,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useBluetoothPrinter } from '@/hooks/useBluetoothPrinter';
+import { useBiometricAuth } from '@/hooks/useBiometricAuth';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { PrinterSettings } from '@/components/printer/PrinterSettings';
 
 export default function KasirAccount() {
   const { user, profile, refreshProfile } = useAuth();
   const { status, connect, printTestPage } = useBluetoothPrinter();
+  const { 
+    isAvailable: isBiometricAvailable, 
+    isEnabled: isBiometricEnabled, 
+    biometryType,
+    isNative,
+    enableBiometric,
+    disableBiometric,
+  } = useBiometricAuth();
+  
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [showPrinterSettings, setShowPrinterSettings] = useState(false);
@@ -36,6 +49,41 @@ export default function KasirAccount() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  const handleToggleBiometric = (enabled: boolean) => {
+    if (enabled) {
+      if (user?.email) {
+        enableBiometric(user.email);
+        toast.success('Login biometrik diaktifkan');
+      }
+    } else {
+      disableBiometric();
+      toast.success('Login biometrik dinonaktifkan');
+    }
+  };
+
+  const getBiometricIcon = () => {
+    switch (biometryType) {
+      case 'faceId':
+        return <ScanFace className="h-5 w-5 text-primary" />;
+      case 'fingerprint':
+      default:
+        return <Fingerprint className="h-5 w-5 text-primary" />;
+    }
+  };
+
+  const getBiometricLabel = () => {
+    switch (biometryType) {
+      case 'faceId':
+        return 'Face ID';
+      case 'fingerprint':
+        return 'Sidik Jari';
+      case 'iris':
+        return 'Iris';
+      default:
+        return 'Biometrik';
+    }
+  };
 
   const handleUpdateProfile = async () => {
     if (!name.trim()) {
@@ -203,6 +251,49 @@ export default function KasirAccount() {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Biometric Authentication Card - Only show on native platforms */}
+        {isNative && isBiometricAvailable && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Fingerprint className="h-4 w-4" />
+                Keamanan Biometrik
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    isBiometricEnabled ? 'bg-primary/10' : 'bg-muted'
+                  }`}>
+                    {getBiometricIcon()}
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">
+                      Login dengan {getBiometricLabel()}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {isBiometricEnabled 
+                        ? 'Aktif - login lebih cepat dan aman' 
+                        : 'Nonaktif - aktifkan untuk kemudahan'}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={isBiometricEnabled}
+                  onCheckedChange={handleToggleBiometric}
+                />
+              </div>
+              
+              {isBiometricEnabled && (
+                <p className="text-xs text-muted-foreground text-center">
+                  {getBiometricLabel()} akan digunakan untuk verifikasi saat login
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Printer Card */}
         <Card>
