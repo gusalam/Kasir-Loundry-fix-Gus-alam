@@ -64,38 +64,35 @@ export function MobileLayout({ children, title, showBack, role }: MobileLayoutPr
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border/50 z-50 safe-area-bottom">
-        <div className="flex items-center justify-around h-20 max-w-lg mx-auto px-2">
-          {navItems.map((item, index) => {
+      <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 safe-area-bottom">
+        <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
+          {navItems.map((item) => {
             const isActive = location.pathname === item.path || 
               (item.path !== '/admin/dashboard' && item.path !== '/kasir/dashboard' && location.pathname.startsWith(item.path));
-            const isCenter = index === Math.floor(navItems.length / 2);
             
             return (
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
                 className={cn(
-                  'flex flex-col items-center justify-center gap-1.5 transition-all duration-300 relative',
+                  'flex flex-col items-center justify-center w-full h-full gap-1 transition-all duration-200 relative',
                   'active:scale-95 touch-manipulation',
-                  isCenter 
-                    ? 'w-20 h-16 -mt-4 rounded-2xl bg-primary/10 border border-primary/20' 
-                    : 'w-16 h-full',
-                  isActive 
-                    ? isCenter 
-                      ? 'bg-primary/20 border-primary/40 text-primary shadow-lg shadow-primary/20' 
-                      : 'text-primary'
-                    : 'text-muted-foreground hover:text-foreground'
+                  isActive ? 'text-primary' : 'text-muted-foreground'
                 )}
               >
+                {isActive && (
+                  <motion.div
+                    layoutId="bottomNavIndicator"
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary rounded-b-full"
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                  />
+                )}
                 <item.icon className={cn(
-                  'transition-all duration-300',
-                  isCenter ? 'h-7 w-7' : 'h-6 w-6',
+                  'h-6 w-6 transition-transform duration-200',
                   isActive && 'scale-110'
                 )} strokeWidth={isActive ? 2.5 : 2} />
                 <span className={cn(
-                  'font-medium transition-all duration-200',
-                  isCenter ? 'text-[10px]' : 'text-[11px]',
+                  'text-[11px] font-medium',
                   isActive && 'font-semibold'
                 )}>
                   {item.label}
