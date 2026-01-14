@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TropicalBackground } from '@/components/landing/TropicalBackground';
-import { ThemeToggle } from '@/components/landing/ThemeToggle';
 import { BiometricLoginButton } from '@/components/auth/BiometricLoginButton';
 import { Droplets, Eye, EyeOff, Loader2, Mail, Lock, User, ArrowLeft, Fingerprint } from 'lucide-react';
 import { toast } from 'sonner';
@@ -178,9 +177,6 @@ export default function Login() {
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden p-4">
       {/* Tropical background - same as homepage for continuity */}
       <TropicalBackground />
-
-      {/* Theme toggle */}
-      <ThemeToggle />
 
       {/* Back button */}
       <motion.button

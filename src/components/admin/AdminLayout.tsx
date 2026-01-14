@@ -15,6 +15,7 @@ import {
   ClipboardList,
   Settings,
   ChevronRight,
+  Bell,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,6 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -86,32 +88,34 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background flex flex-col w-full">
-      {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-card border-b border-border safe-area-top">
+      {/* Header - Light & Clean */}
+      <header className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-border/50 safe-area-top">
         <div className="flex items-center justify-between h-14 px-4 max-w-4xl mx-auto">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">PL</span>
+            <div className="w-10 h-10 rounded-2xl bg-gradient-header-accent flex items-center justify-center shadow-sm">
+              <span className="text-white font-bold text-sm">PL</span>
             </div>
             <div>
               <h1 className="text-sm font-bold text-foreground leading-tight">
-                {title || 'Admin Panel'}
+                {title || 'Dashboard'}
               </h1>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 {profile?.name || 'Administrator'}
               </p>
             </div>
           </div>
           
-          {/* Logout Button in Header */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowLogoutDialog(true)}
-            className="text-muted-foreground hover:text-destructive"
-          >
-            <LogOut className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowLogoutDialog(true)}
+              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl"
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -119,7 +123,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
       <div className="h-14 safe-area-top" />
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto pb-20 w-full">
+      <main className="flex-1 overflow-y-auto pb-24 w-full bg-background">
         <motion.div
           key={location.pathname}
           initial={{ opacity: 0, y: 10 }}
@@ -131,50 +135,54 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
         </motion.div>
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.1)] z-50 safe-area-bottom">
-        <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
-          {bottomNavItems.map((item) => {
-            const isActive = isPathActive(item.path);
-            
-            return (
-              <button
-                key={item.path}
-                onClick={() => handleNavClick(item.path)}
-                className={cn(
-                  'flex flex-col items-center justify-center w-full h-full gap-1 transition-all duration-200 relative',
-                  'active:scale-95 touch-manipulation',
-                  isActive ? 'text-primary' : 'text-muted-foreground'
-                )}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="adminBottomNavIndicator"
-                    className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary rounded-b-full"
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  />
-                )}
-                <item.icon className={cn(
-                  'h-6 w-6 transition-transform duration-200',
-                  isActive && 'scale-110'
-                )} />
-                <span className={cn(
-                  'text-[11px] font-medium',
-                  isActive && 'font-semibold'
-                )}>
-                  {item.label}
-                </span>
-              </button>
-            );
-          })}
+      {/* Bottom Navigation - White with subtle shadow */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom">
+        <div className="bg-white border-t border-border/30 shadow-nav mx-auto">
+          <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
+            {bottomNavItems.map((item) => {
+              const isActive = isPathActive(item.path);
+              
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => handleNavClick(item.path)}
+                  className={cn(
+                    'flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all duration-200 relative',
+                    'active:scale-95 touch-manipulation rounded-xl mx-1',
+                    isActive 
+                      ? 'text-primary' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="adminBottomNavBg"
+                      className="absolute inset-1 bg-primary/10 rounded-xl"
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    />
+                  )}
+                  <item.icon className={cn(
+                    'h-5 w-5 relative z-10 transition-all duration-200',
+                    isActive && 'scale-110'
+                  )} strokeWidth={isActive ? 2.5 : 2} />
+                  <span className={cn(
+                    'text-[10px] font-medium relative z-10',
+                    isActive && 'font-semibold'
+                  )}>
+                    {item.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </nav>
 
       {/* Menu Sheet */}
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-        <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh]">
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] bg-white">
           <SheetHeader className="pb-4">
-            <SheetTitle className="text-left">Menu Admin</SheetTitle>
+            <SheetTitle className="text-left text-foreground">Menu Admin</SheetTitle>
           </SheetHeader>
           
           <div className="space-y-2 pb-4">
@@ -196,8 +204,8 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
                 <div className={cn(
                   'w-12 h-12 rounded-xl flex items-center justify-center',
                   location.pathname.startsWith(item.path)
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground'
+                    ? 'bg-primary text-white'
+                    : 'bg-white text-muted-foreground shadow-sm'
                 )}>
                   <item.icon className="h-6 w-6" />
                 </div>
@@ -211,7 +219,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
           </div>
           
           {/* Logout Button */}
-          <div className="border-t pt-4">
+          <div className="border-t border-border/50 pt-4">
             <Button 
               variant="destructive" 
               className="w-full h-14 text-base rounded-2xl"
@@ -229,16 +237,16 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
 
       {/* Logout Confirmation */}
       <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-3xl bg-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Konfirmasi Logout</AlertDialogTitle>
+            <AlertDialogTitle className="text-foreground">Konfirmasi Logout</AlertDialogTitle>
             <AlertDialogDescription>
               Apakah Anda yakin ingin keluar dari akun?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLogout}>
+            <AlertDialogCancel className="rounded-xl">Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogout} className="rounded-xl">
               Ya, Keluar
             </AlertDialogAction>
           </AlertDialogFooter>
