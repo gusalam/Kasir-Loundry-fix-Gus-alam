@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminLayout } from '@/components/admin/AdminLayout';
-import { MobileStatCard } from '@/components/dashboard/MobileStatCard';
+import { IllustratedStatCard } from '@/components/dashboard/IllustratedStatCard';
+import { SoftCard } from '@/components/ui/SoftCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -55,24 +56,11 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchDashboardData();
 
-    // Set up realtime subscription
     const channel = supabase
       .channel('admin-dashboard-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'transactions' },
-        () => fetchDashboardData()
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'payments' },
-        () => fetchDashboardData()
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'expenses' },
-        () => fetchDashboardData()
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => fetchDashboardData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => fetchDashboardData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => fetchDashboardData())
       .subscribe();
 
     return () => {
@@ -214,186 +202,178 @@ export default function AdminDashboard() {
   return (
     <AdminLayout title="Dashboard">
       <PullToRefresh onRefresh={handleRefresh}>
-      <div className="space-y-5">
-        {/* Welcome Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-header-accent rounded-2xl p-5 shadow-card"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-white/30 flex items-center justify-center">
-              <Sparkles className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-white">
-                Halo, {displayName} 👋
-              </h2>
-              <p className="text-sm text-white/80">
-                Ringkasan bisnis hari ini
-              </p>
-            </div>
-          </div>
-        </motion.div>
+        <div className="space-y-5">
+          {/* Welcome Header - Soft Pastel Style */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <SoftCard variant="primary" padding="lg" className="border-0">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-white/60 flex items-center justify-center shadow-sm">
+                  <Sparkles className="h-7 w-7 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-[hsl(200,80%,25%)]">
+                    Halo, {displayName} 👋
+                  </h2>
+                  <p className="text-sm text-[hsl(200,60%,40%)]">
+                    Ringkasan bisnis hari ini
+                  </p>
+                </div>
+              </div>
+            </SoftCard>
+          </motion.div>
 
-        {/* Stats Grid - 2 columns */}
-        <div className="grid grid-cols-2 gap-3">
-          <motion.div
+          {/* Stats Grid - 2 columns with illustrations */}
+          <div className="grid grid-cols-2 gap-3">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <IllustratedStatCard
+                title="Order Hari Ini"
+                value={stats.ordersToday}
+                subtitle="transaksi"
+                icon={<ShoppingCart className="h-5 w-5" />}
+                illustration="orders"
+                variant="primary"
+              />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <IllustratedStatCard
+                title="Omzet"
+                value={formatCurrency(stats.revenueToday)}
+                subtitle="hari ini"
+                icon={<TrendingUp className="h-5 w-5" />}
+                illustration="revenue"
+                variant="success"
+              />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <IllustratedStatCard
+                title="Pengeluaran"
+                value={formatCurrency(stats.expensesToday)}
+                subtitle="hari ini"
+                icon={<TrendingDown className="h-5 w-5" />}
+                illustration="expense"
+                variant="warning"
+              />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+            >
+              <IllustratedStatCard
+                title="Laba Bersih"
+                value={formatCurrency(stats.profitToday)}
+                subtitle={stats.profitToday >= 0 ? 'profit' : 'rugi'}
+                icon={<Wallet className="h-5 w-5" />}
+                illustration="profit"
+                variant={stats.profitToday >= 0 ? 'success' : 'danger'}
+              />
+            </motion.div>
+          </div>
+
+          {/* Quick Status Cards */}
+          <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
+            transition={{ delay: 0.3 }}
+            className="grid grid-cols-2 gap-3"
           >
-            <MobileStatCard
-              title="Order Hari Ini"
-              value={stats.ordersToday}
-              subtitle="transaksi"
-              icon={<ShoppingCart className="h-5 w-5" />}
-              variant="primary"
-            />
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-          >
-            <MobileStatCard
-              title="Omzet"
-              value={formatCurrency(stats.revenueToday)}
-              subtitle="hari ini"
-              icon={<TrendingUp className="h-5 w-5" />}
+            <IllustratedStatCard
+              title="Siap Diambil"
+              value={stats.readyOrders}
+              icon={<Package className="h-5 w-5" />}
+              illustration="ready"
               variant="success"
+              onClick={() => navigate('/admin/pengambilan')}
             />
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <MobileStatCard
-              title="Pengeluaran"
-              value={formatCurrency(stats.expensesToday)}
-              subtitle="hari ini"
-              icon={<TrendingDown className="h-5 w-5" />}
+            <IllustratedStatCard
+              title="Dalam Proses"
+              value={stats.pendingOrders}
+              icon={<Clock className="h-5 w-5" />}
+              illustration="process"
               variant="warning"
+              onClick={() => navigate('/admin/daftar-transaksi?status=diproses')}
             />
           </motion.div>
+
+          {/* Recent Transactions - Soft Card Style */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
+            transition={{ delay: 0.35 }}
           >
-            <MobileStatCard
-              title="Laba Bersih"
-              value={formatCurrency(stats.profitToday)}
-              subtitle={stats.profitToday >= 0 ? 'profit' : 'rugi'}
-              icon={<Wallet className="h-5 w-5" />}
-              variant={stats.profitToday >= 0 ? 'success' : 'danger'}
-            />
+            <SoftCard className="p-0 overflow-hidden">
+              <div className="flex items-center justify-between p-4 border-b border-border/50">
+                <h3 className="text-base font-semibold text-foreground">
+                  Transaksi Terbaru
+                </h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="text-xs text-primary hover:text-primary hover:bg-primary/10 rounded-lg"
+                  onClick={() => navigate('/admin/daftar-transaksi')}
+                >
+                  Semua
+                  <ArrowRight className="h-3 w-3 ml-1" />
+                </Button>
+              </div>
+              <div className="p-4">
+                {recentTransactions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-3 flex items-center justify-center">
+                      <ShoppingCart className="h-8 w-8 text-muted-foreground/50" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">Belum ada transaksi hari ini</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {recentTransactions.slice(0, 5).map((trans, index) => (
+                      <motion.button
+                        key={trans.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.4 + index * 0.05 }}
+                        onClick={() => navigate(`/admin/daftar-transaksi?id=${trans.id}`)}
+                        className="w-full flex items-center justify-between p-3 bg-muted/40 hover:bg-muted/60 rounded-xl active:scale-[0.99] touch-manipulation text-left transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm text-foreground truncate">
+                            {trans.invoice_number}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {trans.customers?.name || 'Walk-in'} • {format(new Date(trans.created_at), 'HH:mm', { locale: id })}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 ml-2">
+                          <Badge variant={getStatusBadge(trans.status) as any} className="text-[10px]">
+                            {getStatusLabel(trans.status)}
+                          </Badge>
+                          <p className="font-semibold text-sm text-foreground whitespace-nowrap">
+                            {formatCurrency(Number(trans.total_amount))}
+                          </p>
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </SoftCard>
           </motion.div>
         </div>
-
-        {/* Quick Status Cards */}
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="grid grid-cols-2 gap-3"
-        >
-          <button
-            onClick={() => navigate('/admin/pengambilan')}
-            className="bg-[hsl(155,60%,92%)] p-4 rounded-2xl border-2 border-[hsl(155,60%,85%)] text-left active:scale-[0.98] touch-manipulation shadow-card transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-success/20 flex items-center justify-center">
-                <Package className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-[hsl(155,65%,30%)]">{stats.readyOrders}</p>
-                <p className="text-xs text-muted-foreground">Siap Diambil</p>
-              </div>
-            </div>
-          </button>
-          
-          <button
-            onClick={() => navigate('/admin/daftar-transaksi?status=diproses')}
-            className="bg-[hsl(45,100%,92%)] p-4 rounded-2xl border-2 border-[hsl(45,100%,85%)] text-left active:scale-[0.98] touch-manipulation shadow-card transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-warning/25 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-[hsl(40,80%,35%)]" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-[hsl(40,80%,25%)]">{stats.pendingOrders}</p>
-                <p className="text-xs text-muted-foreground">Dalam Proses</p>
-              </div>
-            </div>
-          </button>
-        </motion.div>
-
-        {/* Recent Transactions */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-        >
-          <Card className="shadow-card border-border/30 bg-white">
-            <CardHeader className="flex flex-row items-center justify-between py-4 px-4">
-              <CardTitle className="text-base font-semibold text-foreground">
-                Transaksi Terbaru
-              </CardTitle>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="text-xs text-primary hover:text-primary hover:bg-primary/10 rounded-lg"
-                onClick={() => navigate('/admin/daftar-transaksi')}
-              >
-                Semua
-                <ArrowRight className="h-3 w-3 ml-1" />
-              </Button>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              {recentTransactions.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-3 flex items-center justify-center">
-                    <ShoppingCart className="h-8 w-8 text-muted-foreground/50" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">Belum ada transaksi hari ini</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {recentTransactions.slice(0, 5).map((trans, index) => (
-                    <motion.button
-                      key={trans.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.4 + index * 0.05 }}
-                      onClick={() => navigate(`/admin/daftar-transaksi?id=${trans.id}`)}
-                      className="w-full flex items-center justify-between p-3 bg-muted/40 hover:bg-muted/60 rounded-xl active:scale-[0.99] touch-manipulation text-left transition-colors"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm text-foreground truncate">
-                          {trans.invoice_number}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {trans.customers?.name || 'Walk-in'} • {format(new Date(trans.created_at), 'HH:mm', { locale: id })}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 ml-2">
-                        <Badge variant={getStatusBadge(trans.status) as any} className="text-[10px]">
-                          {getStatusLabel(trans.status)}
-                        </Badge>
-                        <p className="font-semibold text-sm text-foreground whitespace-nowrap">
-                          {formatCurrency(Number(trans.total_amount))}
-                        </p>
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
       </PullToRefresh>
     </AdminLayout>
   );

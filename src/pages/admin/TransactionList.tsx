@@ -1,22 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AdminLayout } from '@/components/admin/AdminLayout';
+import { SoftCard } from '@/components/ui/SoftCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
   Search,
-  Filter,
   Eye,
   Trash2,
   Loader2,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
-  Printer,
+  ShoppingCart,
+  Filter,
 } from 'lucide-react';
 import {
   Select,
@@ -39,6 +39,7 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { ReceiptModal } from '@/components/receipt/ReceiptModal';
 import type { ReceiptData } from '@/components/receipt/Receipt';
+import { motion } from 'framer-motion';
 
 interface Transaction {
   id: number;
@@ -52,6 +53,7 @@ interface Transaction {
   customers: { name: string; phone: string } | null;
   notes: string | null;
 }
+
 export default function AdminTransactionList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -76,10 +78,7 @@ export default function AdminTransactionList() {
     try {
       let query = supabase
         .from('transactions')
-        .select(`
-          *,
-          customers (name, phone)
-        `, { count: 'exact' })
+        .select(`*, customers (name, phone)`, { count: 'exact' })
         .order('created_at', { ascending: false })
         .range((page - 1) * pageSize, page * pageSize - 1);
 
@@ -105,22 +104,12 @@ export default function AdminTransactionList() {
     }
   };
 
-  const handleSearch = () => {
-    // Filter locally for now
-    fetchTransactions();
-  };
-
   const handleDelete = async () => {
     if (!deleteId) return;
 
     try {
-      const { error } = await supabase
-        .from('transactions')
-        .delete()
-        .eq('id', deleteId);
-
+      const { error } = await supabase.from('transactions').delete().eq('id', deleteId);
       if (error) throw error;
-
       toast.success('Transaksi berhasil dihapus');
       fetchTransactions();
     } catch (error: any) {
@@ -132,13 +121,8 @@ export default function AdminTransactionList() {
 
   const handleUpdateStatus = async (transactionId: number, newStatus: string) => {
     try {
-      const { error } = await supabase
-        .from('transactions')
-        .update({ status: newStatus as any })
-        .eq('id', transactionId);
-
+      const { error } = await supabase.from('transactions').update({ status: newStatus as any }).eq('id', transactionId);
       if (error) throw error;
-
       toast.success('Status berhasil diupdate');
       fetchTransactions();
     } catch (error: any) {
@@ -148,7 +132,6 @@ export default function AdminTransactionList() {
 
   const handleViewDetail = async (trans: Transaction) => {
     try {
-      // Fetch transaction items
       const { data: items, error: itemsError } = await supabase
         .from('transaction_items')
         .select('*')
@@ -156,7 +139,6 @@ export default function AdminTransactionList() {
 
       if (itemsError) throw itemsError;
 
-      // Fetch payment info
       const { data: payments, error: payError } = await supabase
         .from('payments')
         .select('method')
@@ -222,6 +204,17 @@ export default function AdminTransactionList() {
     return variants[status] || 'default';
   };
 
+  const getStatusLabel = (status: string): string => {
+    const labels: Record<string, string> = {
+      diterima: 'Diterima',
+      diproses: 'Diproses',
+      qc: 'QC',
+      selesai: 'Selesai',
+      diambil: 'Diambil',
+    };
+    return labels[status] || status;
+  };
+
   const totalPages = Math.ceil(totalCount / pageSize);
 
   const filteredTransactions = transactions.filter(t =>
@@ -231,188 +224,179 @@ export default function AdminTransactionList() {
 
   return (
     <AdminLayout title="Daftar Transaksi">
-      {/* Filters */}
-      <Card className="p-4 mb-6">
-        <div className="flex flex-wrap gap-3">
-          <div className="flex-1 min-w-[200px]">
+      {/* Filters - Soft Card */}
+      <SoftCard className="mb-4">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1">
             <Input
               placeholder="Cari invoice, customer..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               leftIcon={<Search className="h-4 w-4" />}
+              className="h-12 rounded-xl"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Status</SelectItem>
-              <SelectItem value="diterima">Diterima</SelectItem>
-              <SelectItem value="diproses">Diproses</SelectItem>
-              <SelectItem value="qc">QC</SelectItem>
-              <SelectItem value="selesai">Selesai</SelectItem>
-              <SelectItem value="diambil">Diambil</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Pembayaran" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua</SelectItem>
-              <SelectItem value="lunas">Lunas</SelectItem>
-              <SelectItem value="dp">DP</SelectItem>
-              <SelectItem value="belum_lunas">Belum Lunas</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" onClick={fetchTransactions}>
-            <RefreshCw className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-2">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[130px] h-12 rounded-xl">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Status</SelectItem>
+                <SelectItem value="diterima">Diterima</SelectItem>
+                <SelectItem value="diproses">Diproses</SelectItem>
+                <SelectItem value="qc">QC</SelectItem>
+                <SelectItem value="selesai">Selesai</SelectItem>
+                <SelectItem value="diambil">Diambil</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+              <SelectTrigger className="w-[130px] h-12 rounded-xl">
+                <SelectValue placeholder="Bayar" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua</SelectItem>
+                <SelectItem value="lunas">Lunas</SelectItem>
+                <SelectItem value="dp">DP</SelectItem>
+                <SelectItem value="belum_lunas">Belum</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" onClick={fetchTransactions} className="h-12 w-12 rounded-xl p-0">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-      </Card>
+      </SoftCard>
 
-      {/* Table */}
-      <Card>
-        {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      {/* Transaction List - Card based for mobile */}
+      {isLoading ? (
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : filteredTransactions.length === 0 ? (
+        <SoftCard className="text-center py-12">
+          <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
+            <ShoppingCart className="h-8 w-8 text-muted-foreground/50" />
           </div>
-        ) : filteredTransactions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-            <p>Tidak ada transaksi ditemukan</p>
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-muted/50 border-b">
-                  <tr>
-                    <th className="text-left p-4 font-medium">Invoice</th>
-                    <th className="text-left p-4 font-medium">Customer</th>
-                    <th className="text-left p-4 font-medium">Total</th>
-                    <th className="text-left p-4 font-medium">Bayar</th>
-                    <th className="text-left p-4 font-medium">Status</th>
-                    <th className="text-left p-4 font-medium">Pembayaran</th>
-                    <th className="text-left p-4 font-medium">Tanggal</th>
-                    <th className="text-left p-4 font-medium">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {filteredTransactions.map((trans) => (
-                    <tr key={trans.id} className="hover:bg-muted/50">
-                      <td className="p-4 font-medium">{trans.invoice_number}</td>
-                      <td className="p-4">{trans.customers?.name || 'Walk-in'}</td>
-                      <td className="p-4">{formatCurrency(Number(trans.total_amount))}</td>
-                      <td className="p-4">{formatCurrency(Number(trans.paid_amount))}</td>
-                      <td className="p-4">
-                        <Select
-                          value={trans.status}
-                          onValueChange={(value) => handleUpdateStatus(trans.id, value)}
-                        >
-                          <SelectTrigger className="w-[120px] h-8">
-                            <Badge variant={getStatusBadge(trans.status) as any}>
-                              {trans.status}
-                            </Badge>
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="diterima">Diterima</SelectItem>
-                            <SelectItem value="diproses">Diproses</SelectItem>
-                            <SelectItem value="qc">QC</SelectItem>
-                            <SelectItem value="selesai">Selesai</SelectItem>
-                            <SelectItem value="diambil">Diambil</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="p-4">
-                        <Badge variant={getPaymentBadge(trans.payment_status) as any}>
+          <p className="text-muted-foreground">Tidak ada transaksi ditemukan</p>
+        </SoftCard>
+      ) : (
+        <div className="space-y-3">
+          {filteredTransactions.map((trans, idx) => (
+            <motion.div
+              key={trans.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.03 }}
+            >
+              <SoftCard className="p-0 overflow-hidden">
+                <div className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <p className="font-bold text-foreground">{trans.invoice_number}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {trans.customers?.name || 'Walk-in'}
+                      </p>
+                    </div>
+                    <Badge variant={getStatusBadge(trans.status) as any}>
+                      {getStatusLabel(trans.status)}
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-lg font-bold text-foreground">{formatCurrency(Number(trans.total_amount))}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant={getPaymentBadge(trans.payment_status) as any} className="text-[10px]">
                           {trans.payment_status.replace('_', ' ')}
                         </Badge>
-                      </td>
-                      <td className="p-4 text-sm text-muted-foreground">
-                        {format(new Date(trans.created_at), 'dd MMM yyyy HH:mm', { locale: id })}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <Button 
-                            size="icon-sm" 
-                            variant="ghost"
-                            onClick={() => handleViewDetail(trans)}
-                            title="Lihat Detail"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            size="icon-sm" 
-                            variant="ghost" 
-                            onClick={() => setDeleteId(trans.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-danger" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(trans.created_at), 'dd MMM yyyy HH:mm', { locale: id })}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => handleViewDetail(trans)} className="rounded-xl">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => setDeleteId(trans.id)} className="rounded-xl">
+                        <Trash2 className="h-4 w-4 text-danger" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Quick Status Update */}
+                {trans.status !== 'diambil' && (
+                  <div className="px-4 py-3 bg-muted/30 border-t border-border/50">
+                    <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+                      {['diterima', 'diproses', 'qc', 'selesai', 'diambil'].map((status) => (
+                        <Button
+                          key={status}
+                          variant={trans.status === status ? 'default' : 'outline'}
+                          size="sm"
+                          className="h-8 rounded-lg text-xs flex-shrink-0"
+                          onClick={() => handleUpdateStatus(trans.id, status)}
+                        >
+                          {getStatusLabel(status)}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </SoftCard>
+            </motion.div>
+          ))}
 
-            {/* Pagination */}
-            <div className="flex items-center justify-between p-4 border-t">
-              <p className="text-sm text-muted-foreground">
-                Menampilkan {(page - 1) * pageSize + 1} - {Math.min(page * pageSize, totalCount)} dari {totalCount} transaksi
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-sm">
-                  {page} / {totalPages || 1}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  disabled={page >= totalPages}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+          {/* Pagination */}
+          <SoftCard className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {(page - 1) * pageSize + 1} - {Math.min(page * pageSize, totalCount)} dari {totalCount}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="rounded-xl"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm px-2">{page}/{totalPages || 1}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="rounded-xl"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
-          </>
-        )}
-      </Card>
+          </SoftCard>
+        </div>
+      )}
 
       {/* Delete Dialog */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-3xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus Transaksi?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tindakan ini tidak dapat dibatalkan. Transaksi akan dihapus permanen.
+              Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-danger text-danger-foreground hover:bg-danger/90">
+            <AlertDialogCancel className="rounded-xl">Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-danger text-danger-foreground hover:bg-danger/90 rounded-xl">
               Hapus
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Receipt Modal */}
-      <ReceiptModal
-        open={showReceipt}
-        onClose={() => setShowReceipt(false)}
-        data={receiptData}
-      />
+      <ReceiptModal open={showReceipt} onClose={() => setShowReceipt(false)} data={receiptData} />
     </AdminLayout>
   );
 }

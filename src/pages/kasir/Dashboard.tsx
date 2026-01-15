@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { KasirLayout } from '@/components/kasir/KasirLayout';
-import { MobileStatCard } from '@/components/dashboard/MobileStatCard';
+import { IllustratedStatCard } from '@/components/dashboard/IllustratedStatCard';
+import { SoftCard } from '@/components/ui/SoftCard';
+import { SoftButton } from '@/components/ui/SoftButton';
 import { PullToRefresh } from '@/components/ui/PullToRefresh';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,6 +20,7 @@ import {
   Plus,
   Truck,
   ClipboardList,
+  Sparkles,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -53,19 +55,10 @@ export default function KasirDashboard() {
     if (userId) {
       fetchDashboardData();
       
-      // Set up realtime subscription
       const channel = supabase
         .channel('kasir-dashboard-changes')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'transactions' },
-          () => fetchDashboardData()
-        )
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'payments' },
-          () => fetchDashboardData()
-        )
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => fetchDashboardData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => fetchDashboardData())
         .subscribe();
 
       return () => {
@@ -85,7 +78,6 @@ export default function KasirDashboard() {
       const startISO = startOfDay.toISOString();
       const endISO = endOfDay.toISOString();
 
-      // Fetch today's transactions by this kasir
       const { data: transactions, error: transError } = await supabase
         .from('transactions')
         .select('id')
@@ -95,8 +87,6 @@ export default function KasirDashboard() {
 
       if (transError) throw transError;
 
-      // Fetch today's revenue from payments received by this kasir
-      // Since payments don't have user filter, we get payments from kasir's transactions
       const { data: kasirTransactions } = await supabase
         .from('transactions')
         .select('id')
@@ -119,21 +109,18 @@ export default function KasirDashboard() {
         totalRevenue = payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
       }
 
-      // Fetch pending pickup (selesai status) - kasir's transactions
       const { data: pendingPickup } = await supabase
         .from('transactions')
         .select('id')
         .eq('user_id', userId)
         .eq('status', 'selesai');
 
-      // Fetch in progress (diterima, diproses, qc) - kasir's transactions
       const { data: inProgress } = await supabase
         .from('transactions')
         .select('id')
         .eq('user_id', userId)
         .in('status', ['diterima', 'diproses', 'qc']);
 
-      // Fetch recent transactions by this kasir
       const { data: recent } = await supabase
         .from('transactions')
         .select(`*, customers (name, phone)`)
@@ -221,141 +208,194 @@ export default function KasirDashboard() {
   return (
     <KasirLayout>
       <PullToRefresh onRefresh={handleRefresh} className="h-full -mx-4 px-4">
-        <div className="space-y-6 pb-6">
-          {/* Greeting */}
+        <div className="space-y-5 pb-6">
+          {/* Welcome Header - Soft Pastel */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <h2 className="text-xl font-bold text-foreground">
-              Halo, {displayName} 👋
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Ringkasan transaksi Anda hari ini
-            </p>
+            <SoftCard variant="primary" padding="lg" className="border-0">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-white/60 flex items-center justify-center shadow-sm">
+                  <Sparkles className="h-7 w-7 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-[hsl(200,80%,25%)]">
+                    Halo, {displayName} 👋
+                  </h2>
+                  <p className="text-sm text-[hsl(200,60%,40%)]">
+                    Ringkasan transaksi Anda hari ini
+                  </p>
+                </div>
+              </div>
+            </SoftCard>
           </motion.div>
 
-          {/* Stats Grid - 2 columns */}
+          {/* Stats Grid - 2 columns with illustrations */}
           <div className="grid grid-cols-2 gap-3">
-            <MobileStatCard
-              title="Order Hari Ini"
-              value={stats.ordersToday}
-              subtitle="transaksi Anda"
-              icon={<ShoppingCart className="h-5 w-5" />}
-              variant="primary"
-            />
-            <MobileStatCard
-              title="Uang Masuk"
-              value={formatCurrency(stats.revenueToday)}
-              subtitle="hari ini"
-              icon={<TrendingUp className="h-5 w-5" />}
-              variant="success"
-            />
-            <MobileStatCard
-              title="Belum Diambil"
-              value={stats.pendingPickup}
-              subtitle="siap diambil"
-              icon={<Package className="h-5 w-5" />}
-              variant="warning"
-              onClick={() => navigate('/kasir/pengambilan')}
-            />
-            <MobileStatCard
-              title="Dalam Proses"
-              value={stats.inProgress}
-              subtitle="sedang dikerjakan"
-              icon={<Clock className="h-5 w-5" />}
-              variant="info"
-              onClick={() => navigate('/kasir/daftar-transaksi')}
-            />
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <IllustratedStatCard
+                title="Order Hari Ini"
+                value={stats.ordersToday}
+                subtitle="transaksi Anda"
+                icon={<ShoppingCart className="h-5 w-5" />}
+                illustration="orders"
+                variant="primary"
+              />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <IllustratedStatCard
+                title="Uang Masuk"
+                value={formatCurrency(stats.revenueToday)}
+                subtitle="hari ini"
+                icon={<TrendingUp className="h-5 w-5" />}
+                illustration="revenue"
+                variant="success"
+              />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <IllustratedStatCard
+                title="Belum Diambil"
+                value={stats.pendingPickup}
+                subtitle="siap diambil"
+                icon={<Package className="h-5 w-5" />}
+                illustration="ready"
+                variant="warning"
+                onClick={() => navigate('/kasir/pengambilan')}
+              />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+            >
+              <IllustratedStatCard
+                title="Dalam Proses"
+                value={stats.inProgress}
+                subtitle="sedang dikerjakan"
+                icon={<Clock className="h-5 w-5" />}
+                illustration="process"
+                variant="info"
+                onClick={() => navigate('/kasir/daftar-transaksi')}
+              />
+            </motion.div>
           </div>
 
-          {/* Quick Actions */}
-          <div>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+          {/* Quick Actions - Soft Button Style */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <p className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
               Aksi Cepat
-            </h3>
+            </p>
             <div className="grid grid-cols-1 gap-3">
-              <motion.button
-                whileTap={{ scale: 0.98 }}
+              <SoftButton
+                variant="primary"
+                size="lg"
+                fullWidth
+                icon={<Plus className="h-6 w-6" />}
                 onClick={() => navigate('/kasir/transaksi-baru')}
-                className="w-full h-14 bg-gradient-primary text-primary-foreground rounded-2xl flex items-center justify-center gap-3 font-semibold shadow-lg active:scale-[0.98] touch-manipulation"
               >
-                <Plus className="h-6 w-6" />
                 Transaksi Baru
-              </motion.button>
+              </SoftButton>
               
               <div className="grid grid-cols-2 gap-3">
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
+                <SoftButton
+                  variant="outline"
+                  size="md"
+                  fullWidth
+                  icon={<Truck className="h-5 w-5 text-success" />}
                   onClick={() => navigate('/kasir/pengambilan')}
-                  className="h-14 bg-card border-2 border-border text-foreground rounded-2xl flex items-center justify-center gap-2 font-medium active:scale-[0.98] touch-manipulation"
                 >
-                  <Truck className="h-5 w-5 text-success" />
                   Pengambilan
-                </motion.button>
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
+                </SoftButton>
+                <SoftButton
+                  variant="outline"
+                  size="md"
+                  fullWidth
+                  icon={<ClipboardList className="h-5 w-5 text-warning" />}
                   onClick={() => navigate('/kasir/tutup-kas')}
-                  className="h-14 bg-card border-2 border-border text-foreground rounded-2xl flex items-center justify-center gap-2 font-medium active:scale-[0.98] touch-manipulation"
                 >
-                  <ClipboardList className="h-5 w-5 text-warning" />
                   Tutup Kas
-                </motion.button>
+                </SoftButton>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Recent Transactions */}
-          <Card className="shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
-              <CardTitle className="text-base">Transaksi Terakhir</CardTitle>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="text-xs"
-                onClick={() => navigate('/kasir/daftar-transaksi')}
-              >
-                Semua
-                <ArrowRight className="h-3 w-3 ml-1" />
-              </Button>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              {recentTransactions.length === 0 ? (
-                <div className="text-center py-6">
-                  <ShoppingCart className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Belum ada transaksi hari ini</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {recentTransactions.slice(0, 5).map((trans) => (
-                    <motion.div
-                      key={trans.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="flex items-center justify-between p-3 bg-muted/50 rounded-xl"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">
-                          {trans.invoice_number}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {trans.customers?.name || 'Walk-in'} • {format(new Date(trans.created_at), 'HH:mm', { locale: id })}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 ml-2">
-                        <Badge variant={getStatusBadge(trans.status) as any} className="text-[10px]">
-                          {getStatusLabel(trans.status)}
-                        </Badge>
-                        <p className="font-semibold text-sm whitespace-nowrap">
-                          {formatCurrency(Number(trans.total_amount))}
-                        </p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Recent Transactions - Soft Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+          >
+            <SoftCard className="p-0 overflow-hidden">
+              <div className="flex items-center justify-between p-4 border-b border-border/50">
+                <h3 className="text-base font-semibold">Transaksi Terakhir</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="text-xs text-primary"
+                  onClick={() => navigate('/kasir/daftar-transaksi')}
+                >
+                  Semua
+                  <ArrowRight className="h-3 w-3 ml-1" />
+                </Button>
+              </div>
+              <div className="p-4">
+                {recentTransactions.length === 0 ? (
+                  <div className="text-center py-6">
+                    <div className="w-14 h-14 rounded-full bg-muted mx-auto mb-3 flex items-center justify-center">
+                      <ShoppingCart className="h-7 w-7 text-muted-foreground/40" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">Belum ada transaksi hari ini</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {recentTransactions.slice(0, 5).map((trans, idx) => (
+                      <motion.div
+                        key={trans.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.4 + idx * 0.05 }}
+                        className="flex items-center justify-between p-3 bg-muted/40 rounded-xl"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {trans.invoice_number}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {trans.customers?.name || 'Walk-in'} • {format(new Date(trans.created_at), 'HH:mm', { locale: id })}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 ml-2">
+                          <Badge variant={getStatusBadge(trans.status) as any} className="text-[10px]">
+                            {getStatusLabel(trans.status)}
+                          </Badge>
+                          <p className="font-semibold text-sm whitespace-nowrap">
+                            {formatCurrency(Number(trans.total_amount))}
+                          </p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </SoftCard>
+          </motion.div>
         </div>
       </PullToRefresh>
     </KasirLayout>
