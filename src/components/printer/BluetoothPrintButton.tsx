@@ -3,9 +3,10 @@ import { Button } from '@/components/ui/button';
 import { useBluetoothPrinter } from '@/hooks/useBluetoothPrinter';
 import { useReceiptSettings } from '@/hooks/useReceiptSettings';
 import { toast } from 'sonner';
-import { Printer, Loader2, Bluetooth } from 'lucide-react';
+import { Printer, Loader2, Bluetooth, Smartphone } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { Capacitor } from '@capacitor/core';
 import type { ReceiptData } from '@/components/receipt/Receipt';
 
 interface BluetoothPrintButtonProps {
@@ -24,6 +25,8 @@ export function BluetoothPrintButton({
   const { status, connect, printReceipt } = useBluetoothPrinter();
   const { getReceiptProps } = useReceiptSettings();
   const [isPrinting, setIsPrinting] = useState(false);
+  
+  const isNative = Capacitor.isNativePlatform();
 
   const handlePrint = useCallback(async () => {
     // If not connected, try to connect first
@@ -99,8 +102,22 @@ export function BluetoothPrintButton({
     }
   }, [status.isConnected, connect, printReceipt, receiptData, getReceiptProps]);
 
-  if (!status.isSupported) {
-    return null;
+  // On web without support, show disabled state with info
+  if (!isNative && !status.isSupported) {
+    return (
+      <Button
+        variant={variant}
+        size={size}
+        disabled
+        className={className}
+        title="Fitur ini tersedia di aplikasi Android"
+      >
+        <Smartphone className="h-4 w-4" />
+        {size !== 'icon' && size !== 'icon-sm' && (
+          <span className="ml-2">Cetak Bluetooth (APK)</span>
+        )}
+      </Button>
+    );
   }
 
   const isIconOnly = size === 'icon' || size === 'icon-sm';
