@@ -107,10 +107,15 @@ export function useReceiptSettings() {
     paperSize: settings?.paper_size || DEFAULT_SETTINGS.paper_size,
   });
 
+  const isAutoPrintEnabled = () => {
+    return localStorage.getItem('auto_print') === 'true';
+  };
+
   return {
     settings,
     isLoading,
     refetch: fetchSettings,
     getReceiptProps,
+    isAutoPrintEnabled,
   };
 }

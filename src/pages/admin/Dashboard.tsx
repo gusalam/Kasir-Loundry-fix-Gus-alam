@@ -203,21 +203,21 @@ export default function AdminDashboard() {
     <AdminLayout title="Dashboard">
       <PullToRefresh onRefresh={handleRefresh}>
         <div className="space-y-5">
-          {/* Welcome Header - Soft Pastel Style */}
+          {/* Welcome Header - Soft Pastel Style with Gradient */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <SoftCard variant="primary" padding="lg" className="border-0">
+            <SoftCard variant="primary" padding="lg" className="border-0 bg-gradient-to-br from-primary/15 via-primary/5 to-accent/10 shadow-sm">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-white/60 flex items-center justify-center shadow-sm">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-white/90 to-white/60 flex items-center justify-center shadow-sm">
                   <Sparkles className="h-7 w-7 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-[hsl(200,80%,25%)]">
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                     Halo, {displayName} 👋
                   </h2>
-                  <p className="text-sm text-[hsl(200,60%,40%)]">
+                  <p className="text-sm text-muted-foreground">
                     Ringkasan bisnis hari ini
                   </p>
                 </div>
@@ -225,7 +225,7 @@ export default function AdminDashboard() {
             </SoftCard>
           </motion.div>
 
-          {/* Stats Grid - 2 columns with illustrations */}
+          {/* Stats Grid - 2 columns with soft pastel backgrounds */}
           <div className="grid grid-cols-2 gap-3">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -285,7 +285,7 @@ export default function AdminDashboard() {
             </motion.div>
           </div>
 
-          {/* Quick Status Cards */}
+          {/* Quick Status Cards - Soft Pastel */}
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -310,14 +310,14 @@ export default function AdminDashboard() {
             />
           </motion.div>
 
-          {/* Recent Transactions - Soft Card Style */}
+          {/* Recent Transactions - Soft Pastel Card Style */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35 }}
           >
-            <SoftCard className="p-0 overflow-hidden">
-              <div className="flex items-center justify-between p-4 border-b border-border/50">
+            <SoftCard className="p-0 overflow-hidden border-0 bg-gradient-to-br from-white via-white to-primary/5 shadow-sm">
+              <div className="flex items-center justify-between p-4 border-b border-primary/10 bg-gradient-to-r from-primary/5 to-transparent">
                 <h3 className="text-base font-semibold text-foreground">
                   Transaksi Terbaru
                 </h3>
@@ -334,10 +334,11 @@ export default function AdminDashboard() {
               <div className="p-4">
                 {recentTransactions.length === 0 ? (
                   <div className="text-center py-8">
-                    <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-3 flex items-center justify-center">
-                      <ShoppingCart className="h-8 w-8 text-muted-foreground/50" />
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 mx-auto mb-3 flex items-center justify-center">
+                      <ShoppingCart className="h-10 w-10 text-primary/40" />
                     </div>
-                    <p className="text-sm text-muted-foreground">Belum ada transaksi hari ini</p>
+                    <p className="text-sm text-muted-foreground font-medium">Belum ada transaksi hari ini</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">Transaksi baru akan muncul di sini</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -348,7 +349,7 @@ export default function AdminDashboard() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.4 + index * 0.05 }}
                         onClick={() => navigate(`/admin/daftar-transaksi?id=${trans.id}`)}
-                        className="w-full flex items-center justify-between p-3 bg-muted/40 hover:bg-muted/60 rounded-xl active:scale-[0.99] touch-manipulation text-left transition-colors"
+                        className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-muted/40 to-muted/20 hover:from-primary/10 hover:to-accent/5 rounded-xl active:scale-[0.99] touch-manipulation text-left transition-all duration-200 border border-transparent hover:border-primary/10"
                       >
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm text-foreground truncate">
@@ -359,10 +360,10 @@ export default function AdminDashboard() {
                           </p>
                         </div>
                         <div className="flex items-center gap-2 ml-2">
-                          <Badge variant={getStatusBadge(trans.status) as any} className="text-[10px]">
+                          <Badge variant={getStatusBadge(trans.status) as any} className="text-[10px] shadow-sm">
                             {getStatusLabel(trans.status)}
                           </Badge>
-                          <p className="font-semibold text-sm text-foreground whitespace-nowrap">
+                          <p className="font-semibold text-sm bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent whitespace-nowrap">
                             {formatCurrency(Number(trans.total_amount))}
                           </p>
                         </div>

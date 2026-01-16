@@ -43,6 +43,7 @@ interface ReceiptSettings {
   paper_size: string;
   show_logo: boolean;
   whatsapp_enabled: boolean;
+  auto_print: boolean;
 }
 
 // Sample receipt data for preview
@@ -77,6 +78,7 @@ export default function AdminSettings() {
     paper_size: '58mm',
     show_logo: true,
     whatsapp_enabled: false,
+    auto_print: false,
   });
 
   useEffect(() => {
@@ -106,6 +108,7 @@ export default function AdminSettings() {
           paper_size: data.paper_size,
           show_logo: data.show_logo,
           whatsapp_enabled: data.whatsapp_enabled,
+          auto_print: localStorage.getItem('auto_print') === 'true',
         });
       }
     } catch (error: any) {
@@ -174,13 +177,14 @@ export default function AdminSettings() {
   return (
     <AdminLayout title="Pengaturan">
       <div className="space-y-6">
-        {/* Header */}
+        {/* Header - Soft Pastel */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-br from-primary/10 via-background to-accent/10 p-4 rounded-2xl"
         >
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <SettingsIcon className="h-6 w-6" />
+          <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent flex items-center gap-2">
+            <SettingsIcon className="h-6 w-6 text-primary" />
             Pengaturan
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -188,11 +192,13 @@ export default function AdminSettings() {
           </p>
         </motion.div>
 
-        {/* Business Profile */}
-        <Card>
+        {/* Business Profile - Soft Pastel Card */}
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-white via-white to-primary/5">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Store className="h-5 w-5 text-primary" />
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                <Store className="h-4 w-4 text-primary" />
+              </div>
               Profil Bisnis
             </CardTitle>
             <CardDescription>
@@ -207,13 +213,13 @@ export default function AdminSettings() {
                 value={settings.business_name}
                 onChange={(e) => setSettings({ ...settings, business_name: e.target.value })}
                 placeholder="Nama laundry Anda"
-                className="h-12 rounded-xl"
+                className="h-12 rounded-xl border-primary/20 focus:border-primary/40"
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="phone" className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
+                <Phone className="h-4 w-4 text-primary/60" />
                 Nomor Telepon
               </Label>
               <Input
@@ -221,13 +227,13 @@ export default function AdminSettings() {
                 value={settings.phone || ''}
                 onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
                 placeholder="08123456789"
-                className="h-12 rounded-xl"
+                className="h-12 rounded-xl border-primary/20 focus:border-primary/40"
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="address" className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
+                <MapPin className="h-4 w-4 text-primary/60" />
                 Alamat
               </Label>
               <Textarea
@@ -235,17 +241,19 @@ export default function AdminSettings() {
                 value={settings.address || ''}
                 onChange={(e) => setSettings({ ...settings, address: e.target.value })}
                 placeholder="Alamat lengkap bisnis"
-                className="min-h-[80px] rounded-xl resize-none"
+                className="min-h-[80px] rounded-xl resize-none border-primary/20 focus:border-primary/40"
               />
             </div>
           </CardContent>
         </Card>
 
-        {/* Receipt Settings */}
-        <Card>
+        {/* Receipt Settings - Soft Pastel Card */}
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-white via-white to-warning/5">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <ReceiptIcon className="h-5 w-5 text-warning" />
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-warning/20 to-warning/10 flex items-center justify-center">
+                <ReceiptIcon className="h-4 w-4 text-warning" />
+              </div>
               Pengaturan Struk
             </CardTitle>
             <CardDescription>
@@ -255,17 +263,17 @@ export default function AdminSettings() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="paper_size" className="flex items-center gap-2">
-                <Printer className="h-4 w-4" />
+                <Printer className="h-4 w-4 text-warning/60" />
                 Ukuran Kertas
               </Label>
               <Select
                 value={settings.paper_size}
                 onValueChange={(value) => setSettings({ ...settings, paper_size: value })}
               >
-                <SelectTrigger className="h-12 rounded-xl">
+                <SelectTrigger className="h-12 rounded-xl border-warning/20 focus:border-warning/40">
                   <SelectValue placeholder="Pilih ukuran" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-xl">
                   <SelectItem value="58mm">58mm (Thermal Kecil)</SelectItem>
                   <SelectItem value="80mm">80mm (Thermal Besar)</SelectItem>
                   <SelectItem value="A4">A4 (Kertas Biasa)</SelectItem>
@@ -275,7 +283,7 @@ export default function AdminSettings() {
 
             <div className="space-y-2">
               <Label htmlFor="footer_text" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
+                <FileText className="h-4 w-4 text-warning/60" />
                 Teks Footer
               </Label>
               <Textarea
@@ -283,13 +291,13 @@ export default function AdminSettings() {
                 value={settings.footer_text || ''}
                 onChange={(e) => setSettings({ ...settings, footer_text: e.target.value })}
                 placeholder="Teks yang muncul di bawah struk"
-                className="min-h-[80px] rounded-xl resize-none"
+                className="min-h-[80px] rounded-xl resize-none border-warning/20 focus:border-warning/40"
               />
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl">
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/5 to-accent/5 rounded-xl border border-primary/10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
                   <Image className="h-5 w-5 text-primary" />
                 </div>
                 <div>
@@ -303,12 +311,46 @@ export default function AdminSettings() {
               />
             </div>
 
+            {/* Auto Print Toggle */}
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-accent/5 to-primary/5 rounded-xl border border-accent/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-accent/20 to-accent/10 flex items-center justify-center">
+                  <Printer className="h-5 w-5 text-accent" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Auto Print</p>
+                  <p className="text-xs text-muted-foreground">Cetak otomatis setelah transaksi</p>
+                </div>
+              </div>
+              <Switch
+                checked={settings.auto_print}
+                onCheckedChange={(checked) => {
+                  setSettings({ ...settings, auto_print: checked });
+                  localStorage.setItem('auto_print', String(checked));
+                }}
+              />
+            </div>
+
+            {settings.auto_print && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="p-4 bg-accent/5 border border-accent/20 rounded-xl"
+              >
+                <p className="text-sm text-accent font-medium mb-1">Auto Print Aktif</p>
+                <p className="text-xs text-muted-foreground">
+                  Struk akan dicetak otomatis setelah transaksi berhasil.
+                  Pastikan printer Bluetooth sudah terhubung.
+                </p>
+              </motion.div>
+            )}
+
             {/* Preview Button */}
             <Button
               type="button"
               variant="outline"
               onClick={() => setShowPreview(!showPreview)}
-              className="w-full h-12 rounded-xl"
+              className="w-full h-12 rounded-xl border-warning/20 hover:bg-warning/10 hover:border-warning/30"
             >
               <Eye className="h-4 w-4 mr-2" />
               {showPreview ? 'Sembunyikan Preview' : 'Lihat Preview Struk'}
@@ -322,7 +364,7 @@ export default function AdminSettings() {
                 exit={{ opacity: 0, height: 0 }}
                 className="mt-4"
               >
-                <div className="bg-muted/30 p-4 rounded-xl border">
+                <div className="bg-gradient-to-br from-muted/30 to-muted/10 p-4 rounded-xl border border-muted/50">
                   <p className="text-xs text-muted-foreground text-center mb-4">
                     Preview dengan data contoh
                   </p>
@@ -345,11 +387,13 @@ export default function AdminSettings() {
           </CardContent>
         </Card>
 
-        {/* WhatsApp Integration */}
-        <Card>
+        {/* WhatsApp Integration - Soft Pastel Card */}
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-white via-white to-success/5">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <MessageCircle className="h-5 w-5 text-success" />
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-success/20 to-success/10 flex items-center justify-center">
+                <MessageCircle className="h-4 w-4 text-success" />
+              </div>
               Integrasi WhatsApp
             </CardTitle>
             <CardDescription>
@@ -357,9 +401,9 @@ export default function AdminSettings() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl">
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-success/5 to-success/10 rounded-xl border border-success/10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-success/20 to-success/10 flex items-center justify-center">
                   <MessageCircle className="h-5 w-5 text-success" />
                 </div>
                 <div>
@@ -393,18 +437,18 @@ export default function AdminSettings() {
 
         {/* Bluetooth Printer Settings */}
         <PrinterSettings
-          autoPrint={false}
+          autoPrint={settings.auto_print}
           onAutoPrintChange={(value) => {
-            // Could be saved to settings if needed
-            console.log('Auto print:', value);
+            setSettings({ ...settings, auto_print: value });
+            localStorage.setItem('auto_print', String(value));
           }}
         />
 
-        {/* Save Button */}
+        {/* Save Button - Gradient Style */}
         <Button
           onClick={handleSave}
           disabled={isSaving}
-          className="w-full h-14 text-base rounded-2xl"
+          className="w-full h-14 text-base rounded-2xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/20"
         >
           {isSaving ? (
             <>
