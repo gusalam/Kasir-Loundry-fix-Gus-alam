@@ -402,7 +402,7 @@ export default function KasirAccount() {
               <Button
                 variant={status.isConnected ? 'outline' : 'default'}
                 size="sm"
-                onClick={connect}
+                onClick={() => connect()}
                 disabled={status.isConnecting}
               >
                 {status.isConnecting ? (
