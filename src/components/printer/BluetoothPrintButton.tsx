@@ -3,32 +3,37 @@ import { Button } from '@/components/ui/button';
 import { useBluetoothPrinter } from '@/hooks/useBluetoothPrinter';
 import { useReceiptSettings } from '@/hooks/useReceiptSettings';
 import { toast } from 'sonner';
-import { Printer, Loader2, Bluetooth, Smartphone } from 'lucide-react';
+import { Printer, Loader2, Bluetooth, Smartphone, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Capacitor } from '@capacitor/core';
 import type { ReceiptData } from '@/components/receipt/Receipt';
+import { ReceiptPreviewDialog } from './ReceiptPreviewDialog';
 
 interface BluetoothPrintButtonProps {
   receiptData: ReceiptData;
   variant?: 'default' | 'outline' | 'ghost';
   size?: 'default' | 'sm' | 'lg' | 'icon' | 'icon-sm';
   className?: string;
+  showPreview?: boolean;
 }
 
 export function BluetoothPrintButton({ 
   receiptData, 
   variant = 'outline',
   size = 'default',
-  className 
+  className,
+  showPreview = true,
 }: BluetoothPrintButtonProps) {
   const { status, connect, printReceipt } = useBluetoothPrinter();
   const { getReceiptProps } = useReceiptSettings();
   const [isPrinting, setIsPrinting] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   
   const isNative = Capacitor.isNativePlatform();
 
-  const handlePrint = useCallback(async () => {
+  // Direct print (no preview)
+  const handleDirectPrint = useCallback(async () => {
     // If not connected, try to connect first
     if (!status.isConnected) {
       const connectResult = await connect();
@@ -53,13 +58,13 @@ export function BluetoothPrintButton({
         return methods[method] || method;
       };
 
-      const getPaymentStatusLabel = (status: string) => {
+      const getPaymentStatusLabel = (paymentStatus: string) => {
         const statuses: Record<string, string> = {
           lunas: 'LUNAS',
           dp: 'DP',
           belum_lunas: 'BELUM LUNAS',
         };
-        return statuses[status] || status;
+        return statuses[paymentStatus] || paymentStatus;
       };
 
       const result = await printReceipt({
@@ -102,6 +107,15 @@ export function BluetoothPrintButton({
     }
   }, [status.isConnected, connect, printReceipt, receiptData, getReceiptProps]);
 
+  // Handle button click - show preview or print directly
+  const handleClick = useCallback(() => {
+    if (showPreview) {
+      setPreviewOpen(true);
+    } else {
+      handleDirectPrint();
+    }
+  }, [showPreview, handleDirectPrint]);
+
   // On web without support, show disabled state with info
   if (!isNative && !status.isSupported) {
     return (
@@ -123,26 +137,41 @@ export function BluetoothPrintButton({
   const isIconOnly = size === 'icon' || size === 'icon-sm';
 
   return (
-    <Button
-      variant={variant}
-      size={size}
-      onClick={handlePrint}
-      disabled={isPrinting}
-      className={className}
-      title={status.isConnected ? 'Cetak via Bluetooth' : 'Hubungkan & Cetak'}
-    >
-      {isPrinting ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : status.isConnected ? (
-        <Printer className="h-4 w-4" />
-      ) : (
-        <Bluetooth className="h-4 w-4" />
-      )}
-      {!isIconOnly && (
-        <span className="ml-2">
-          {status.isConnected ? 'Cetak Bluetooth' : 'Cetak via Bluetooth'}
-        </span>
-      )}
-    </Button>
+    <>
+      <Button
+        variant={variant}
+        size={size}
+        onClick={handleClick}
+        disabled={isPrinting}
+        className={className}
+        title={showPreview ? 'Preview & Cetak' : status.isConnected ? 'Cetak via Bluetooth' : 'Hubungkan & Cetak'}
+      >
+        {isPrinting ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : showPreview ? (
+          <Eye className="h-4 w-4" />
+        ) : status.isConnected ? (
+          <Printer className="h-4 w-4" />
+        ) : (
+          <Bluetooth className="h-4 w-4" />
+        )}
+        {!isIconOnly && (
+          <span className="ml-2">
+            {showPreview 
+              ? 'Preview & Cetak'
+              : status.isConnected 
+                ? 'Cetak Bluetooth' 
+                : 'Cetak via Bluetooth'}
+          </span>
+        )}
+      </Button>
+
+      {/* Preview Dialog */}
+      <ReceiptPreviewDialog
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        receiptData={receiptData}
+      />
+    </>
   );
 }

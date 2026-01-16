@@ -8,6 +8,7 @@ import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { SwipeBackNavigation } from "@/components/gestures/SwipeBackNavigation";
 import { ExitConfirmationDialog } from "@/components/app/ExitConfirmationDialog";
 import { PushNotificationManager } from "@/components/notifications/PushNotificationManager";
+import { BluetoothAutoConnect } from "@/components/printer/BluetoothAutoConnect";
 import { useExitConfirmation } from "@/hooks/useExitConfirmation";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
@@ -220,6 +221,9 @@ function AnimatedRoutes() {
 
       {/* Push Notification Manager for Native App */}
       {Capacitor.isNativePlatform() && <PushNotificationManager />}
+      
+      {/* Bluetooth Auto-Connect for Native App */}
+      {Capacitor.isNativePlatform() && <BluetoothAutoConnect />}
     </>
   );
 }
