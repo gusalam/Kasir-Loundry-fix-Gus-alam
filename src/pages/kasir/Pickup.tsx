@@ -3,11 +3,13 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { KasirLayout } from '@/components/kasir/KasirLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { SoftCard } from '@/components/ui/SoftCard';
+import { ReceiptPreviewDialog } from '@/components/printer/ReceiptPreviewDialog';
+import { motion } from 'framer-motion';
 import {
   Search,
   Loader2,
@@ -19,6 +21,9 @@ import {
   CreditCard,
   Printer,
   AlertCircle,
+  User,
+  Calendar,
+  PackageCheck,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -31,9 +36,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { QRScanner } from '@/components/qrcode/QRScanner';
-import { ReceiptModal } from '@/components/receipt/ReceiptModal';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import type { ReceiptData } from '@/components/receipt/Receipt';
 
 interface Transaction {
   id: number;
@@ -65,7 +70,8 @@ export default function KasirPickup() {
   const [scannedTx, setScannedTx] = useState<ScannedTransaction | null>(null);
   const [showActionDialog, setShowActionDialog] = useState(false);
   const [actionType, setActionType] = useState<'payment' | 'pickup' | 'info' | null>(null);
-  const [showReceipt, setShowReceipt] = useState(false);
+  const [showReceiptPreview, setShowReceiptPreview] = useState(false);
+  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
   useEffect(() => {
     fetchTransactions();
@@ -162,13 +168,65 @@ export default function KasirPickup() {
       if (error) throw error;
 
       toast.success('Status berhasil diupdate ke Diambil');
-      setShowReceipt(true); // Auto show receipt after pickup
+      
+      // Get transaction data for receipt
+      const trans = transactions.find(t => t.id === pickupId);
+      if (trans) {
+        await prepareReceiptData(trans);
+      }
+      
       fetchTransactions();
     } catch (error: any) {
       toast.error('Gagal update status: ' + error.message);
     } finally {
       setIsProcessing(false);
       setPickupId(null);
+    }
+  };
+
+  const prepareReceiptData = async (trans: Transaction | ScannedTransaction) => {
+    try {
+      // Fetch transaction items if not available
+      let items = (trans as ScannedTransaction).items;
+      if (!items) {
+        const { data: fetchedItems } = await supabase
+          .from('transaction_items')
+          .select('service_name, qty, price, subtotal')
+          .eq('transaction_id', trans.id);
+        items = fetchedItems || [];
+      }
+
+      // Fetch payment info
+      const { data: payments } = await supabase
+        .from('payments')
+        .select('method')
+        .eq('transaction_id', trans.id)
+        .limit(1);
+
+      const paymentMethod = payments?.[0]?.method || 'cash';
+
+      const newReceiptData: ReceiptData = {
+        invoice_number: trans.invoice_number,
+        created_at: trans.created_at,
+        customer_name: trans.customers?.name || 'Walk-in Customer',
+        customer_phone: trans.customers?.phone,
+        items: (items || []).map(item => ({
+          service_name: item.service_name,
+          qty: Number(item.qty),
+          price: Number(item.price),
+          subtotal: Number(item.subtotal),
+        })),
+        total_amount: Number(trans.total_amount),
+        paid_amount: Number(trans.paid_amount),
+        payment_method: paymentMethod,
+        payment_status: trans.payment_status,
+        order_status: 'diambil',
+      };
+
+      setReceiptData(newReceiptData);
+      setShowReceiptPreview(true);
+    } catch (error) {
+      console.error('Error preparing receipt:', error);
     }
   };
 
@@ -186,12 +244,53 @@ export default function KasirPickup() {
 
       toast.success('Status berhasil diupdate ke Diambil');
       setShowActionDialog(false);
-      setShowReceipt(true); // Auto show receipt
+      await prepareReceiptData(scannedTx);
       fetchTransactions();
     } catch (error: any) {
       toast.error('Gagal update status: ' + error.message);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handlePrintReceipt = async (trans: Transaction) => {
+    try {
+      const { data: items } = await supabase
+        .from('transaction_items')
+        .select('service_name, qty, price, subtotal')
+        .eq('transaction_id', trans.id);
+
+      const { data: payments } = await supabase
+        .from('payments')
+        .select('method')
+        .eq('transaction_id', trans.id)
+        .limit(1);
+
+      const paymentMethod = payments?.[0]?.method || 'cash';
+
+      const newReceiptData: ReceiptData = {
+        invoice_number: trans.invoice_number,
+        created_at: trans.created_at,
+        customer_name: trans.customers?.name || 'Walk-in Customer',
+        customer_phone: trans.customers?.phone,
+        items: (items || []).map(item => ({
+          service_name: item.service_name,
+          qty: Number(item.qty),
+          price: Number(item.price),
+          subtotal: Number(item.subtotal),
+        })),
+        total_amount: Number(trans.total_amount),
+        paid_amount: Number(trans.paid_amount),
+        payment_method: paymentMethod,
+        payment_status: trans.payment_status,
+        order_status: trans.status,
+      };
+
+      setReceiptData(newReceiptData);
+      setShowReceiptPreview(true);
+    } catch (error) {
+      console.error('Error preparing receipt:', error);
+      toast.error('Gagal menyiapkan struk');
     }
   };
 
@@ -261,20 +360,20 @@ export default function KasirPickup() {
   return (
     <KasirLayout>
       {/* Header Stats */}
-      <Card className="p-6 mb-6 bg-gradient-to-r from-success/10 to-success/5">
+      <SoftCard variant="success" className="mb-6">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-success text-success-foreground">
-            <Package className="h-7 w-7" />
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-success to-success/80 text-success-foreground shadow-lg">
+            <PackageCheck className="h-7 w-7" />
           </div>
           <div>
             <p className="text-3xl font-bold text-foreground">{transactions.length}</p>
             <p className="text-muted-foreground">Order siap diambil</p>
           </div>
         </div>
-      </Card>
+      </SoftCard>
 
       {/* Search & Scan */}
-      <Card className="p-4 mb-6">
+      <SoftCard className="mb-6">
         <div className="flex gap-3">
           <div className="flex-1">
             <Input
@@ -282,16 +381,17 @@ export default function KasirPickup() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               leftIcon={<Search className="h-4 w-4" />}
+              className="bg-white/80"
             />
           </div>
-          <Button variant="outline" onClick={() => setShowScanner(true)}>
+          <Button variant="outline" onClick={() => setShowScanner(true)} className="bg-white/80">
             <QrCode className="h-4 w-4" />
           </Button>
-          <Button variant="outline" onClick={fetchTransactions}>
+          <Button variant="outline" onClick={fetchTransactions} className="bg-white/80">
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
-      </Card>
+      </SoftCard>
 
       {/* List */}
       {isLoading ? (
@@ -299,31 +399,38 @@ export default function KasirPickup() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : filteredTransactions.length === 0 ? (
-        <Card className="p-12 text-center">
-          <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">Tidak ada order yang siap diambil</p>
-        </Card>
+        <SoftCard className="p-12 text-center">
+          <Package className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+          <p className="text-lg font-medium text-muted-foreground">Tidak ada order yang siap diambil</p>
+          <p className="text-sm text-muted-foreground/70 mt-1">Order yang selesai akan muncul di sini</p>
+        </SoftCard>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredTransactions.map((trans) => (
-            <Card key={trans.id} className="p-4 hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="font-bold text-lg">{trans.invoice_number}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {format(new Date(trans.created_at), 'dd MMM yyyy HH:mm', { locale: id })}
-                  </p>
-                </div>
-                <Badge variant="ready">Selesai</Badge>
-              </div>
-
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Package className="h-4 w-4 text-primary" />
-                  </div>
+          {filteredTransactions.map((trans, index) => (
+            <motion.div
+              key={trans.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05, duration: 0.3 }}
+            >
+              <SoftCard className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                <div className="flex items-start justify-between mb-4">
                   <div>
-                    <p className="font-medium">{trans.customers?.name || 'Walk-in'}</p>
+                    <p className="font-bold text-lg">{trans.invoice_number}</p>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                      <Calendar className="h-3.5 w-3.5" />
+                      {format(new Date(trans.created_at), 'dd MMM yyyy HH:mm', { locale: id })}
+                    </p>
+                  </div>
+                  <Badge variant="ready">Selesai</Badge>
+                </div>
+
+                <div className="flex items-center gap-3 mb-4 p-3 bg-muted/50 rounded-xl">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                    <User className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{trans.customers?.name || 'Walk-in'}</p>
                     {trans.customers?.phone && (
                       <p className="text-sm text-muted-foreground flex items-center gap-1">
                         <Phone className="h-3 w-3" />
@@ -332,53 +439,72 @@ export default function KasirPickup() {
                     )}
                   </div>
                 </div>
-              </div>
 
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total</p>
-                  <p className="font-bold">{formatCurrency(Number(trans.total_amount))}</p>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total</p>
+                    <p className="text-xl font-bold text-primary">{formatCurrency(Number(trans.total_amount))}</p>
+                  </div>
+                  <Badge variant={getPaymentBadge(trans.payment_status) as any}>
+                    {trans.payment_status.replace('_', ' ')}
+                  </Badge>
                 </div>
-                <Badge variant={getPaymentBadge(trans.payment_status) as any}>
-                  {trans.payment_status.replace('_', ' ')}
-                </Badge>
-              </div>
 
-              {trans.payment_status !== 'lunas' && (
-                <div className="p-2 bg-warning-light rounded mb-3 text-center">
-                  <p className="text-sm font-medium text-warning">
-                    Sisa: {formatCurrency(Number(trans.total_amount) - Number(trans.paid_amount))}
-                  </p>
+                {trans.payment_status !== 'lunas' && (
+                  <div className="p-3 bg-warning-light rounded-xl mb-4 text-center">
+                    <p className="text-sm font-medium text-warning">
+                      Sisa: {formatCurrency(Number(trans.total_amount) - Number(trans.paid_amount))}
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-3 border-t border-border/50">
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 bg-white/50"
+                    onClick={() => handlePrintReceipt(trans)}
+                  >
+                    <Printer className="h-4 w-4 mr-1" />
+                    Cetak
+                  </Button>
+                  <Button 
+                    size="sm"
+                    className="flex-1 bg-gradient-to-r from-success to-success/80 text-success-foreground" 
+                    onClick={() => setPickupId(trans.id)}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    Konfirmasi
+                  </Button>
                 </div>
-              )}
-
-              <Button 
-                className="w-full" 
-                onClick={() => setPickupId(trans.id)}
-              >
-                <CheckCircle className="h-4 w-4" />
-                Konfirmasi Pengambilan
-              </Button>
-            </Card>
+              </SoftCard>
+            </motion.div>
           ))}
         </div>
       )}
 
       {/* Confirm Pickup Dialog (from list) */}
       <AlertDialog open={!!pickupId} onOpenChange={() => setPickupId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Konfirmasi Pengambilan</AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <PackageCheck className="h-5 w-5 text-success" />
+              Konfirmasi Pengambilan
+            </AlertDialogTitle>
             <AlertDialogDescription>
               Apakah customer sudah mengambil cucian? Status akan diubah menjadi "Diambil".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isProcessing}>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handlePickup} disabled={isProcessing}>
+            <AlertDialogAction 
+              onClick={handlePickup} 
+              disabled={isProcessing}
+              className="bg-gradient-to-r from-success to-success/80"
+            >
               {isProcessing ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   Memproses...
                 </>
               ) : (
@@ -391,7 +517,7 @@ export default function KasirPickup() {
 
       {/* Smart Action Dialog (from scan) */}
       <AlertDialog open={showActionDialog} onOpenChange={setShowActionDialog}>
-        <AlertDialogContent className="max-w-sm">
+        <AlertDialogContent className="max-w-sm rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               {actionType === 'payment' && <CreditCard className="h-5 w-5 text-warning" />}
@@ -421,7 +547,7 @@ export default function KasirPickup() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Dibayar</span>
-                  <span className={scannedTx.payment_status === 'lunas' ? 'text-success' : 'text-warning'}>
+                  <span className={scannedTx.payment_status === 'lunas' ? 'text-success font-medium' : 'text-warning font-medium'}>
                     {formatCurrency(Number(scannedTx.paid_amount))}
                   </span>
                 </div>
@@ -458,26 +584,29 @@ export default function KasirPickup() {
               </Button>
             )}
             {actionType === 'pickup' && (
-              <>
-                <Button 
-                  className="w-full h-12" 
-                  onClick={handleScannedPickup}
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                  )}
-                  Konfirmasi Pengambilan
-                </Button>
-              </>
+              <Button 
+                className="w-full h-12 bg-gradient-to-r from-success to-success/80" 
+                onClick={handleScannedPickup}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                )}
+                Konfirmasi Pengambilan
+              </Button>
             )}
             {actionType === 'info' && (
               <Button 
                 variant="outline" 
                 className="w-full h-12"
-                onClick={() => setShowReceipt(true)}
+                onClick={() => {
+                  setShowActionDialog(false);
+                  if (scannedTx) {
+                    prepareReceiptData(scannedTx);
+                  }
+                }}
               >
                 <Printer className="h-4 w-4 mr-2" />
                 Cetak Struk
@@ -493,20 +622,15 @@ export default function KasirPickup() {
         isOpen={showScanner}
         onClose={() => setShowScanner(false)}
         onScan={handleScan}
-        title="Scan Invoice untuk Pengambilan"
+        title="Scan Invoice"
       />
 
-      {/* Receipt Modal */}
-      {scannedTx && getReceiptData() && (
-        <ReceiptModal
-          open={showReceipt}
-          onClose={() => {
-            setShowReceipt(false);
-            setScannedTx(null);
-          }}
-          data={getReceiptData()!}
-        />
-      )}
+      {/* Receipt Preview Dialog */}
+      <ReceiptPreviewDialog
+        open={showReceiptPreview}
+        onClose={() => setShowReceiptPreview(false)}
+        receiptData={receiptData}
+      />
     </KasirLayout>
   );
 }

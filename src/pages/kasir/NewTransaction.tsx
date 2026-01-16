@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { KasirLayout } from '@/components/kasir/KasirLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +11,9 @@ import { toast } from 'sonner';
 import { useReceiptSettings } from '@/hooks/useReceiptSettings';
 import { createNotification, NotificationTemplates } from '@/lib/notifications';
 import { sendWhatsAppNotification } from '@/lib/whatsapp';
+import { SoftCard } from '@/components/ui/SoftCard';
+import { ReceiptPreviewDialog } from '@/components/printer/ReceiptPreviewDialog';
+import { motion } from 'framer-motion';
 import {
   Search,
   Plus,
@@ -22,6 +24,11 @@ import {
   Loader2,
   ShoppingCart,
   ScanBarcode,
+  Sparkles,
+  CreditCard,
+  Banknote,
+  Smartphone,
+  FileText,
 } from 'lucide-react';
 import { QRScanner } from '@/components/qrcode/QRScanner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -39,7 +46,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ReceiptModal } from '@/components/receipt/ReceiptModal';
 import type { ReceiptData } from '@/components/receipt/Receipt';
 
 interface Service {
@@ -83,7 +89,7 @@ export default function KasirNewTransaction() {
   const [showCustomerDialog, setShowCustomerDialog] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
-  const [showReceipt, setShowReceipt] = useState(false);
+  const [showReceiptPreview, setShowReceiptPreview] = useState(false);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [showCheckoutConfirm, setShowCheckoutConfirm] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
@@ -335,7 +341,7 @@ export default function KasirNewTransaction() {
         };
 
         setReceiptData(newReceiptData);
-        setShowReceipt(true);
+        setShowReceiptPreview(true);
       } else {
         navigate('/kasir/daftar-transaksi');
       }
@@ -368,419 +374,480 @@ export default function KasirNewTransaction() {
         {/* Left: Services & Customer */}
         <div className="lg:col-span-2 space-y-6">
           {/* Customer Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Customer
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <Input
-                    placeholder="Cari customer..."
-                    value={customerSearch}
-                    onChange={(e) => setCustomerSearch(e.target.value)}
-                    leftIcon={<Search className="h-4 w-4" />}
-                  />
-                  {customerSearch && (
-                    <div className="mt-2 max-h-48 overflow-y-auto border rounded-lg">
-                      {filteredCustomers.length === 0 ? (
-                        <p className="p-3 text-muted-foreground text-sm">Tidak ditemukan</p>
-                      ) : (
-                        filteredCustomers.map(customer => (
-                          <button
-                            key={customer.id}
-                            onClick={() => {
-                              setSelectedCustomer(customer);
-                              setCustomerSearch('');
-                            }}
-                            className="w-full p-3 text-left hover:bg-muted flex items-center gap-3"
-                          >
-                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                              <User className="h-4 w-4 text-primary" />
-                            </div>
-                            <div>
-                              <p className="font-medium">{customer.name}</p>
-                              <p className="text-sm text-muted-foreground">{customer.phone}</p>
-                            </div>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-                <Dialog open={showCustomerDialog} onOpenChange={setShowCustomerDialog}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline">
-                      <Plus className="h-4 w-4" />
-                      Baru
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Tambah Customer Baru</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Nama</Label>
-                        <Input
-                          value={newCustomerName}
-                          onChange={(e) => setNewCustomerName(e.target.value)}
-                          placeholder="Nama customer"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>No. HP</Label>
-                        <Input
-                          value={newCustomerPhone}
-                          onChange={(e) => setNewCustomerPhone(e.target.value)}
-                          placeholder="08xxxxxxxxxx"
-                        />
-                      </div>
-                      <Button onClick={handleAddCustomer} className="w-full">
-                        Simpan
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+          <SoftCard>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                <User className="h-4 w-4 text-primary" />
               </div>
-
-              {selectedCustomer && (
-                <div className="mt-4 p-3 bg-primary/5 rounded-lg flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
-                      <User className="h-5 w-5 text-primary-foreground" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{selectedCustomer.name}</p>
-                      <p className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        {selectedCustomer.phone || '-'}
-                      </p>
-                    </div>
+              <h3 className="font-semibold">Customer</h3>
+            </div>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Input
+                  placeholder="Cari customer..."
+                  value={customerSearch}
+                  onChange={(e) => setCustomerSearch(e.target.value)}
+                  leftIcon={<Search className="h-4 w-4" />}
+                  className="bg-white/80"
+                />
+                {customerSearch && (
+                  <div className="mt-2 max-h-48 overflow-y-auto border rounded-xl bg-white shadow-lg">
+                    {filteredCustomers.length === 0 ? (
+                      <p className="p-3 text-muted-foreground text-sm">Tidak ditemukan</p>
+                    ) : (
+                      filteredCustomers.map(customer => (
+                        <button
+                          key={customer.id}
+                          onClick={() => {
+                            setSelectedCustomer(customer);
+                            setCustomerSearch('');
+                          }}
+                          className="w-full p-3 text-left hover:bg-muted/50 flex items-center gap-3 transition-colors"
+                        >
+                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                            <User className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{customer.name}</p>
+                            <p className="text-sm text-muted-foreground">{customer.phone}</p>
+                          </div>
+                        </button>
+                      ))
+                    )}
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setSelectedCustomer(null)}>
-                    <Trash2 className="h-4 w-4" />
+                )}
+              </div>
+              <Dialog open={showCustomerDialog} onOpenChange={setShowCustomerDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="bg-white/80">
+                    <Plus className="h-4 w-4" />
+                    Baru
                   </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                </DialogTrigger>
+                <DialogContent className="rounded-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Tambah Customer Baru</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Nama</Label>
+                      <Input
+                        value={newCustomerName}
+                        onChange={(e) => setNewCustomerName(e.target.value)}
+                        placeholder="Nama customer"
+                        className="bg-muted/50"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>No. HP</Label>
+                      <Input
+                        value={newCustomerPhone}
+                        onChange={(e) => setNewCustomerPhone(e.target.value)}
+                        placeholder="08xxxxxxxxxx"
+                        className="bg-muted/50"
+                      />
+                    </div>
+                    <Button onClick={handleAddCustomer} className="w-full bg-gradient-to-r from-primary to-primary/80">
+                      Simpan
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
 
-          {/* Services - Kasir cannot edit prices */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Pilih Layanan</CardTitle>
+            {selectedCustomer && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 p-3 bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
+                    <User className="h-5 w-5 text-primary-foreground" />
+                  </div>
+                  <div>
+                    <p className="font-medium">{selectedCustomer.name}</p>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Phone className="h-3 w-3" />
+                      {selectedCustomer.phone || '-'}
+                    </p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedCustomer(null)}>
+                  <Trash2 className="h-4 w-4 text-danger" />
+                </Button>
+              </motion.div>
+            )}
+          </SoftCard>
+
+          {/* Services */}
+          <SoftCard>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-secondary/20 to-secondary/10 flex items-center justify-center">
+                  <Sparkles className="h-4 w-4 text-secondary" />
+                </div>
+                <h3 className="font-semibold">Pilih Layanan</h3>
+              </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowBarcodeScanner(true)}
-                className="gap-2"
+                className="gap-2 bg-white/80"
               >
                 <ScanBarcode className="h-4 w-4" />
                 Scan
               </Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Search Input */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Cari nama layanan..."
-                  value={serviceSearch}
-                  onChange={(e) => setServiceSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+            </div>
+            
+            {/* Search Input */}
+            <div className="mb-4">
+              <Input
+                placeholder="Cari nama layanan..."
+                value={serviceSearch}
+                onChange={(e) => setServiceSearch(e.target.value)}
+                leftIcon={<Search className="h-4 w-4" />}
+                className="bg-white/80"
+              />
+            </div>
 
-              {/* Category Filter */}
-              <div className="flex gap-2 flex-wrap">
-                <Button
-                  variant={selectedCategory === 'all' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setSelectedCategory('all')}
-                >
-                  Semua
-                </Button>
-                <Button
-                  variant={selectedCategory === 'kiloan' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setSelectedCategory('kiloan')}
-                >
-                  Kiloan
-                </Button>
-                <Button
-                  variant={selectedCategory === 'satuan' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setSelectedCategory('satuan')}
-                >
-                  Satuan
-                </Button>
-              </div>
+            {/* Category Filter */}
+            <div className="flex gap-2 flex-wrap mb-4">
+              <Button
+                variant={selectedCategory === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedCategory('all')}
+                className={selectedCategory === 'all' ? 'bg-gradient-to-r from-primary to-primary/80' : 'bg-white/80'}
+              >
+                Semua
+              </Button>
+              <Button
+                variant={selectedCategory === 'kiloan' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedCategory('kiloan')}
+                className={selectedCategory === 'kiloan' ? 'bg-gradient-to-r from-primary to-primary/80' : 'bg-white/80'}
+              >
+                Kiloan
+              </Button>
+              <Button
+                variant={selectedCategory === 'satuan' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedCategory('satuan')}
+                className={selectedCategory === 'satuan' ? 'bg-gradient-to-r from-primary to-primary/80' : 'bg-white/80'}
+              >
+                Satuan
+              </Button>
+            </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {services
-                  .filter(service => selectedCategory === 'all' || service.type === selectedCategory)
-                  .filter(service => service.name.toLowerCase().includes(serviceSearch.toLowerCase()))
-                  .map(service => (
-                    <button
-                      key={service.id}
-                      onClick={() => addToCart(service)}
-                      className="p-4 border rounded-lg hover:border-primary hover:bg-primary/5 transition-all text-left"
-                    >
-                      <p className="font-medium truncate">{service.name}</p>
-                      <p className="text-sm text-muted-foreground capitalize">{service.type}</p>
-                      <p className="text-primary font-semibold mt-1">
-                        {formatCurrency(service.price)}
-                      </p>
-                    </button>
-                  ))}
-              </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {services
                 .filter(service => selectedCategory === 'all' || service.type === selectedCategory)
                 .filter(service => service.name.toLowerCase().includes(serviceSearch.toLowerCase()))
-                .length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  {selectedCategory === 'all' ? 'Belum ada layanan aktif' : `Belum ada layanan ${selectedCategory}`}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                .map((service, index) => (
+                  <motion.button
+                    key={service.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.02 }}
+                    onClick={() => addToCart(service)}
+                    className="p-4 bg-white border-2 border-border/50 rounded-xl hover:border-primary hover:bg-primary/5 transition-all text-left hover:shadow-md group"
+                  >
+                    <p className="font-medium truncate group-hover:text-primary transition-colors">{service.name}</p>
+                    <p className="text-sm text-muted-foreground capitalize">{service.type}</p>
+                    <p className="text-primary font-bold mt-2">
+                      {formatCurrency(service.price)}
+                    </p>
+                  </motion.button>
+                ))}
+            </div>
+            {services
+              .filter(service => selectedCategory === 'all' || service.type === selectedCategory)
+              .filter(service => service.name.toLowerCase().includes(serviceSearch.toLowerCase()))
+              .length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                {selectedCategory === 'all' ? 'Belum ada layanan aktif' : `Belum ada layanan ${selectedCategory}`}
+              </div>
+            )}
+          </SoftCard>
 
           {/* Notes */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Catatan</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Catatan tambahan untuk pesanan ini..."
-                rows={3}
-              />
-            </CardContent>
-          </Card>
+          <SoftCard>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-warning/20 to-warning/10 flex items-center justify-center">
+                <FileText className="h-4 w-4 text-warning" />
+              </div>
+              <h3 className="font-semibold">Catatan</h3>
+            </div>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Catatan tambahan untuk pesanan ini..."
+              rows={3}
+              className="bg-white/80"
+            />
+          </SoftCard>
         </div>
 
         {/* Right: Cart & Payment */}
         <div className="space-y-6">
-          <Card className="sticky top-20">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                Keranjang
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {cart.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">
-                  Belum ada item
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {cart.map(item => (
-                    <div key={item.service.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{item.service.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatCurrency(item.service.price)} × {item.qty}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1">
-                          <Button size="icon-sm" variant="outline" onClick={() => updateQty(item.service.id, -0.5)}>
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="w-8 text-center text-sm">{item.qty}</span>
-                          <Button size="icon-sm" variant="outline" onClick={() => updateQty(item.service.id, 0.5)}>
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        <Button size="icon-sm" variant="ghost" onClick={() => removeFromCart(item.service.id)}>
-                          <Trash2 className="h-4 w-4 text-danger" />
+          <SoftCard className="sticky top-20">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-success/20 to-success/10 flex items-center justify-center">
+                <ShoppingCart className="h-4 w-4 text-success" />
+              </div>
+              <h3 className="font-semibold">Keranjang</h3>
+              {cart.length > 0 && (
+                <span className="ml-auto bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
+                  {cart.length} item
+                </span>
+              )}
+            </div>
+            
+            {cart.length === 0 ? (
+              <div className="text-center py-12">
+                <ShoppingCart className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
+                <p className="text-muted-foreground">Belum ada item</p>
+                <p className="text-sm text-muted-foreground/70">Pilih layanan untuk memulai</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {cart.map((item, index) => (
+                  <motion.div 
+                    key={item.service.id} 
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="flex items-center justify-between p-3 bg-muted/50 rounded-xl"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{item.service.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatCurrency(item.service.price)} × {item.qty}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <Button size="icon-sm" variant="outline" onClick={() => updateQty(item.service.id, -0.5)} className="h-7 w-7">
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <span className="w-8 text-center text-sm font-medium">{item.qty}</span>
+                        <Button size="icon-sm" variant="outline" onClick={() => updateQty(item.service.id, 0.5)} className="h-7 w-7">
+                          <Plus className="h-3 w-3" />
                         </Button>
                       </div>
+                      <Button size="icon-sm" variant="ghost" onClick={() => removeFromCart(item.service.id)} className="h-7 w-7">
+                        <Trash2 className="h-4 w-4 text-danger" />
+                      </Button>
                     </div>
-                  ))}
+                  </motion.div>
+                ))}
 
-                  <div className="border-t pt-3 mt-3">
-                    <div className="flex justify-between text-lg font-bold">
-                      <span>Total</span>
-                      <span className="text-primary">{formatCurrency(totalAmount)}</span>
+                <div className="border-t pt-4 mt-4">
+                  <div className="flex justify-between text-xl font-bold">
+                    <span>Total</span>
+                    <span className="text-primary">{formatCurrency(totalAmount)}</span>
+                  </div>
+                </div>
+
+                {/* Payment */}
+                <div className="space-y-4 pt-4 border-t">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Metode Pembayaran</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <Button
+                        variant={paymentMethod === 'cash' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setPaymentMethod('cash')}
+                        className={`flex-col h-auto py-3 ${paymentMethod === 'cash' ? 'bg-gradient-to-br from-primary to-primary/80' : 'bg-white/80'}`}
+                      >
+                        <Banknote className="h-5 w-5 mb-1" />
+                        <span className="text-xs">Cash</span>
+                      </Button>
+                      <Button
+                        variant={paymentMethod === 'transfer' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setPaymentMethod('transfer')}
+                        className={`flex-col h-auto py-3 ${paymentMethod === 'transfer' ? 'bg-gradient-to-br from-primary to-primary/80' : 'bg-white/80'}`}
+                      >
+                        <CreditCard className="h-5 w-5 mb-1" />
+                        <span className="text-xs">Transfer</span>
+                      </Button>
+                      <Button
+                        variant={paymentMethod === 'qris' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setPaymentMethod('qris')}
+                        className={`flex-col h-auto py-3 ${paymentMethod === 'qris' ? 'bg-gradient-to-br from-primary to-primary/80' : 'bg-white/80'}`}
+                      >
+                        <Smartphone className="h-5 w-5 mb-1" />
+                        <span className="text-xs">QRIS</span>
+                      </Button>
                     </div>
                   </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Tipe Pembayaran</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant={paymentType === 'dp' ? 'default' : 'outline'}
+                        onClick={() => setPaymentType('dp')}
+                        className={`flex-1 ${paymentType === 'dp' ? 'bg-gradient-to-r from-warning to-warning/80 text-warning-foreground' : 'bg-white/80'}`}
+                      >
+                        DP 50%
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={paymentType === 'lunas' ? 'default' : 'outline'}
+                        onClick={() => setPaymentType('lunas')}
+                        className={`flex-1 ${paymentType === 'lunas' ? 'bg-gradient-to-r from-success to-success/80 text-success-foreground' : 'bg-white/80'}`}
+                      >
+                        Lunas
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-muted/50 p-4 rounded-xl space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Jumlah Bayar:</span>
+                      <span className="font-bold text-primary">{formatCurrency(paidAmount)}</span>
+                    </div>
+                    {paymentType === 'dp' && (
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>Sisa:</span>
+                        <span className="text-warning font-medium">{formatCurrency(totalAmount - paidAmount)}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {paymentMethod === 'cash' && (
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">Uang Diterima</Label>
 
-                  {/* Payment */}
-                  <div className="space-y-3 pt-3 border-t">
-                    <div className="space-y-2">
-                      <Label>Metode Pembayaran</Label>
-                      <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="cash">Cash</SelectItem>
-                          <SelectItem value="transfer">Transfer</SelectItem>
-                          <SelectItem value="qris">QRIS</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Tipe Pembayaran</Label>
-                      <div className="flex gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <Button
+                          type="button"
+                          variant="outline"
                           size="sm"
-                          variant={paymentType === 'dp' ? 'default' : 'outline'}
-                          onClick={() => setPaymentType('dp')}
-                          className="flex-1"
+                          onClick={() => setCashReceived(String(paidAmount))}
+                          className="bg-white/80"
                         >
-                          DP 50%
+                          Pas
                         </Button>
                         <Button
+                          type="button"
+                          variant="ghost"
                           size="sm"
-                          variant={paymentType === 'lunas' ? 'default' : 'outline'}
-                          onClick={() => setPaymentType('lunas')}
-                          className="flex-1"
+                          onClick={() => setCashReceived('')}
                         >
-                          Lunas
+                          Reset
                         </Button>
                       </div>
-                    </div>
-                    <div className="bg-muted p-3 rounded-lg space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Jumlah Bayar:</span>
-                        <span className="font-semibold">{formatCurrency(paidAmount)}</span>
-                      </div>
-                      {paymentType === 'dp' && (
-                        <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>Sisa:</span>
-                          <span>{formatCurrency(totalAmount - paidAmount)}</span>
+
+                      {quickCashAmounts.length > 0 && (
+                        <div className="grid grid-cols-3 gap-2">
+                          {quickCashAmounts.map((amount) => (
+                            <Button
+                              key={amount}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCashReceived(String(amount))}
+                              className="text-xs bg-white/80"
+                            >
+                              {formatCurrency(amount)}
+                            </Button>
+                          ))}
                         </div>
                       )}
+
+                      <Input
+                        type="number"
+                        value={cashReceived}
+                        onChange={(e) => setCashReceived(e.target.value)}
+                        placeholder="Masukkan nominal"
+                        min={0}
+                        className="bg-white/80"
+                      />
+
+                      {cashReceivedNum >= paidAmount && cashReceivedNum > 0 && (
+                        <motion.div 
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="bg-success/10 text-success p-4 rounded-xl"
+                        >
+                          <div className="flex justify-between font-bold text-lg">
+                            <span>Kembalian:</span>
+                            <span>{formatCurrency(changeAmount)}</span>
+                          </div>
+                        </motion.div>
+                      )}
+                      {cashReceivedNum > 0 && cashReceivedNum < paidAmount && (
+                        <p className="text-sm text-destructive bg-destructive/10 p-2 rounded-lg">
+                          Kurang: {formatCurrency(paidAmount - cashReceivedNum)}
+                        </p>
+                      )}
                     </div>
-                    
-                    {paymentMethod === 'cash' && (
-                      <div className="space-y-2">
-                        <Label>Uang Diterima</Label>
+                  )}
 
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCashReceived(String(paidAmount))}
-                          >
-                            Pas ({formatCurrency(paidAmount)})
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setCashReceived('')}
-                          >
-                            Reset
-                          </Button>
-                        </div>
-
-                        {quickCashAmounts.length > 0 && (
-                          <div className="grid grid-cols-3 gap-2">
-                            {quickCashAmounts.map((amount) => (
-                              <Button
-                                key={amount}
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCashReceived(String(amount))}
-                              >
-                                {formatCurrency(amount)}
-                              </Button>
-                            ))}
-                          </div>
-                        )}
-
-                        <Input
-                          type="number"
-                          value={cashReceived}
-                          onChange={(e) => setCashReceived(e.target.value)}
-                          placeholder="Masukkan nominal"
-                          min={0}
-                        />
-
-                        {cashReceivedNum >= paidAmount && cashReceivedNum > 0 && (
-                          <div className="bg-success/10 text-success p-3 rounded-lg">
-                            <div className="flex justify-between font-semibold">
-                              <span>Kembalian:</span>
-                              <span>{formatCurrency(changeAmount)}</span>
-                            </div>
-                          </div>
-                        )}
-                        {cashReceivedNum > 0 && cashReceivedNum < paidAmount && (
-                          <p className="text-sm text-destructive">
-                            Kurang: {formatCurrency(paidAmount - cashReceivedNum)}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                  </div>
-
-                  <Button
-                    className="w-full"
-                    size="lg"
-                    onClick={handleCheckout}
-                    disabled={isSubmitting || cart.length === 0}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Memproses...
-                      </>
-                    ) : (
-                      <>
-                        <ShoppingCart className="h-4 w-4" />
-                        Checkout
-                      </>
-                    )}
-                  </Button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+
+                <Button
+                  className="w-full h-12 bg-gradient-to-r from-primary to-primary/80 text-lg font-semibold mt-4"
+                  onClick={handleCheckout}
+                  disabled={isSubmitting || cart.length === 0}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                      Memproses...
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="h-5 w-5 mr-2" />
+                      Checkout
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </SoftCard>
         </div>
       </div>
 
       {/* Checkout Confirmation Dialog */}
       <Dialog open={showCheckoutConfirm} onOpenChange={setShowCheckoutConfirm}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Konfirmasi Transaksi</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5 text-primary" />
+              Konfirmasi Transaksi
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="bg-muted p-4 rounded-lg space-y-2">
+            <div className="bg-muted/50 p-4 rounded-xl space-y-3">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total:</span>
-                <span className="font-semibold">{formatCurrency(totalAmount)}</span>
+                <span className="font-bold text-lg">{formatCurrency(totalAmount)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Bayar:</span>
-                <span className="font-semibold">{formatCurrency(paidAmount)}</span>
+                <span className="font-bold text-primary">{formatCurrency(paidAmount)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Metode:</span>
-                <span className="font-semibold capitalize">{paymentMethod}</span>
+                <span className="font-medium capitalize">{paymentMethod}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Status:</span>
-                <span className="font-semibold">{paymentType === 'lunas' ? 'Lunas' : 'DP 50%'}</span>
+                <span className={`font-medium ${paymentType === 'lunas' ? 'text-success' : 'text-warning'}`}>
+                  {paymentType === 'lunas' ? 'Lunas' : 'DP 50%'}
+                </span>
               </div>
               {paymentMethod === 'cash' && cashReceivedNum > 0 && (
                 <>
-                  <div className="border-t pt-2 flex justify-between">
+                  <div className="border-t pt-3 flex justify-between">
                     <span className="text-muted-foreground">Uang Diterima:</span>
-                    <span className="font-semibold">{formatCurrency(cashReceivedNum)}</span>
+                    <span className="font-medium">{formatCurrency(cashReceivedNum)}</span>
                   </div>
                   <div className="flex justify-between text-success font-bold">
                     <span>Kembalian:</span>
@@ -797,14 +864,14 @@ export default function KasirNewTransaction() {
             <div className="flex gap-3">
               <Button
                 variant="outline"
-                className="flex-1"
+                className="flex-1 bg-white/80"
                 onClick={() => handleConfirmTransaction(false)}
                 disabled={isSubmitting}
               >
                 Tidak, Simpan Saja
               </Button>
               <Button
-                className="flex-1"
+                className="flex-1 bg-gradient-to-r from-primary to-primary/80"
                 onClick={() => handleConfirmTransaction(true)}
                 disabled={isSubmitting}
               >
@@ -826,14 +893,14 @@ export default function KasirNewTransaction() {
         />
       )}
 
-      {/* Receipt Modal */}
-      <ReceiptModal
-        open={showReceipt}
+      {/* Receipt Preview Dialog */}
+      <ReceiptPreviewDialog
+        open={showReceiptPreview}
         onClose={() => {
-          setShowReceipt(false);
+          setShowReceiptPreview(false);
           navigate('/kasir/daftar-transaksi');
         }}
-        data={receiptData}
+        receiptData={receiptData}
       />
     </KasirLayout>
   );
