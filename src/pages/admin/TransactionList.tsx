@@ -224,24 +224,25 @@ export default function AdminTransactionList() {
 
   return (
     <AdminLayout title="Daftar Transaksi">
-      {/* Filters - Soft Card */}
-      <SoftCard className="mb-4">
+      {/* Filters - Soft Pastel Style */}
+      <SoftCard className="mb-4 border-0 bg-gradient-to-br from-primary/5 via-background to-accent/5">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
             <Input
               placeholder="Cari invoice, customer..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              leftIcon={<Search className="h-4 w-4" />}
-              className="h-12 rounded-xl"
+              leftIcon={<Search className="h-4 w-4 text-primary/60" />}
+              className="h-12 rounded-xl border-primary/20 bg-white/80 focus:border-primary/40 shadow-sm"
             />
           </div>
           <div className="flex gap-2">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[130px] h-12 rounded-xl">
+              <SelectTrigger className="w-[130px] h-12 rounded-xl border-primary/20 bg-white/80 shadow-sm">
+                <Filter className="h-3 w-3 mr-1 text-primary/60" />
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-xl">
                 <SelectItem value="all">Semua Status</SelectItem>
                 <SelectItem value="diterima">Diterima</SelectItem>
                 <SelectItem value="diproses">Diproses</SelectItem>
@@ -251,34 +252,42 @@ export default function AdminTransactionList() {
               </SelectContent>
             </Select>
             <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-              <SelectTrigger className="w-[130px] h-12 rounded-xl">
+              <SelectTrigger className="w-[130px] h-12 rounded-xl border-primary/20 bg-white/80 shadow-sm">
                 <SelectValue placeholder="Bayar" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-xl">
                 <SelectItem value="all">Semua</SelectItem>
                 <SelectItem value="lunas">Lunas</SelectItem>
                 <SelectItem value="dp">DP</SelectItem>
                 <SelectItem value="belum_lunas">Belum</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={fetchTransactions} className="h-12 w-12 rounded-xl p-0">
-              <RefreshCw className="h-4 w-4" />
+            <Button 
+              variant="outline" 
+              onClick={fetchTransactions} 
+              className="h-12 w-12 rounded-xl p-0 border-primary/20 bg-white/80 hover:bg-primary/10 shadow-sm"
+            >
+              <RefreshCw className="h-4 w-4 text-primary" />
             </Button>
           </div>
         </div>
       </SoftCard>
 
-      {/* Transaction List - Card based for mobile */}
+      {/* Transaction List - Soft Pastel Card Style */}
       {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center justify-center h-64 gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center animate-pulse">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+          <p className="text-muted-foreground">Memuat transaksi...</p>
         </div>
       ) : filteredTransactions.length === 0 ? (
-        <SoftCard className="text-center py-12">
-          <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
-            <ShoppingCart className="h-8 w-8 text-muted-foreground/50" />
+        <SoftCard className="text-center py-12 bg-gradient-to-br from-muted/30 via-background to-muted/30 border-0">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 mx-auto mb-4 flex items-center justify-center">
+            <ShoppingCart className="h-10 w-10 text-primary/40" />
           </div>
-          <p className="text-muted-foreground">Tidak ada transaksi ditemukan</p>
+          <p className="text-muted-foreground font-medium">Tidak ada transaksi ditemukan</p>
+          <p className="text-sm text-muted-foreground/60 mt-1">Coba ubah filter atau kata kunci pencarian</p>
         </SoftCard>
       ) : (
         <div className="space-y-3">
@@ -289,7 +298,7 @@ export default function AdminTransactionList() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.03 }}
             >
-              <SoftCard className="p-0 overflow-hidden">
+              <SoftCard className="p-0 overflow-hidden border-0 bg-gradient-to-br from-white via-white to-primary/5 shadow-sm hover:shadow-md transition-shadow">
                 <div className="p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div>
@@ -298,16 +307,21 @@ export default function AdminTransactionList() {
                         {trans.customers?.name || 'Walk-in'}
                       </p>
                     </div>
-                    <Badge variant={getStatusBadge(trans.status) as any}>
+                    <Badge 
+                      variant={getStatusBadge(trans.status) as any}
+                      className="shadow-sm"
+                    >
                       {getStatusLabel(trans.status)}
                     </Badge>
                   </div>
                   
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-lg font-bold text-foreground">{formatCurrency(Number(trans.total_amount))}</p>
+                      <p className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                        {formatCurrency(Number(trans.total_amount))}
+                      </p>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant={getPaymentBadge(trans.payment_status) as any} className="text-[10px]">
+                        <Badge variant={getPaymentBadge(trans.payment_status) as any} className="text-[10px] shadow-sm">
                           {trans.payment_status.replace('_', ' ')}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
@@ -316,26 +330,40 @@ export default function AdminTransactionList() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => handleViewDetail(trans)} className="rounded-xl">
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        onClick={() => handleViewDetail(trans)} 
+                        className="rounded-xl h-10 w-10 bg-primary/10 hover:bg-primary/20 text-primary"
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => setDeleteId(trans.id)} className="rounded-xl">
-                        <Trash2 className="h-4 w-4 text-danger" />
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        onClick={() => setDeleteId(trans.id)} 
+                        className="rounded-xl h-10 w-10 bg-danger/10 hover:bg-danger/20 text-danger"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
                 </div>
                 
-                {/* Quick Status Update */}
+                {/* Quick Status Update - Soft Pastel */}
                 {trans.status !== 'diambil' && (
-                  <div className="px-4 py-3 bg-muted/30 border-t border-border/50">
+                  <div className="px-4 py-3 bg-gradient-to-r from-muted/30 via-muted/20 to-muted/30 border-t border-primary/10">
                     <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
                       {['diterima', 'diproses', 'qc', 'selesai', 'diambil'].map((status) => (
                         <Button
                           key={status}
                           variant={trans.status === status ? 'default' : 'outline'}
                           size="sm"
-                          className="h-8 rounded-lg text-xs flex-shrink-0"
+                          className={`h-8 rounded-lg text-xs flex-shrink-0 ${
+                            trans.status === status 
+                              ? 'bg-gradient-to-r from-primary to-primary/80 shadow-sm' 
+                              : 'border-primary/20 hover:bg-primary/10 hover:border-primary/30'
+                          }`}
                           onClick={() => handleUpdateStatus(trans.id, status)}
                         >
                           {getStatusLabel(status)}
@@ -348,8 +376,8 @@ export default function AdminTransactionList() {
             </motion.div>
           ))}
 
-          {/* Pagination */}
-          <SoftCard className="flex items-center justify-between">
+          {/* Pagination - Soft Pastel */}
+          <SoftCard className="flex items-center justify-between border-0 bg-gradient-to-r from-primary/5 via-background to-accent/5">
             <p className="text-sm text-muted-foreground">
               {(page - 1) * pageSize + 1} - {Math.min(page * pageSize, totalCount)} dari {totalCount}
             </p>
@@ -359,17 +387,17 @@ export default function AdminTransactionList() {
                 size="sm"
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="rounded-xl"
+                className="rounded-xl border-primary/20 hover:bg-primary/10 disabled:opacity-50"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="text-sm px-2">{page}/{totalPages || 1}</span>
+              <span className="text-sm px-3 py-1 rounded-lg bg-primary/10 text-primary font-medium">{page}/{totalPages || 1}</span>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="rounded-xl"
+                className="rounded-xl border-primary/20 hover:bg-primary/10 disabled:opacity-50"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -378,18 +406,24 @@ export default function AdminTransactionList() {
         </div>
       )}
 
-      {/* Delete Dialog */}
+      {/* Delete Dialog - Soft Style */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent className="rounded-3xl">
+        <AlertDialogContent className="rounded-3xl border-0 shadow-xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Transaksi?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tindakan ini tidak dapat dibatalkan.
+            <div className="w-16 h-16 rounded-2xl bg-danger/10 mx-auto mb-4 flex items-center justify-center">
+              <Trash2 className="h-8 w-8 text-danger" />
+            </div>
+            <AlertDialogTitle className="text-center">Hapus Transaksi?</AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
+              Tindakan ini tidak dapat dibatalkan. Data transaksi akan dihapus permanen.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-danger text-danger-foreground hover:bg-danger/90 rounded-xl">
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="rounded-xl w-full sm:w-auto">Batal</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              className="bg-gradient-to-r from-danger to-danger/80 text-danger-foreground hover:from-danger/90 hover:to-danger/70 rounded-xl w-full sm:w-auto"
+            >
               Hapus
             </AlertDialogAction>
           </AlertDialogFooter>
