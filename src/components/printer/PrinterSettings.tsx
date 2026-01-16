@@ -9,6 +9,8 @@ import { Printer, Bluetooth, BluetoothOff, Check, X, Loader2, TestTube2, Refresh
 import { motion, AnimatePresence } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
 import { BluetoothDevice } from '@/lib/capacitor-bluetooth-printer';
+import { BluetoothPermissionDialog } from './BluetoothPermissionDialog';
+import { bluetoothPermissions } from '@/lib/bluetooth-permissions';
 
 interface PrinterSettingsProps {
   autoPrint: boolean;
@@ -20,10 +22,34 @@ export function PrinterSettings({ autoPrint, onAutoPrintChange }: PrinterSetting
   const [isPrintingTest, setIsPrintingTest] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [showDeviceList, setShowDeviceList] = useState(false);
+  
+  // Permission dialog state
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
+  const [isRequestingPermission, setIsRequestingPermission] = useState(false);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
 
   const isNative = Capacitor.isNativePlatform();
 
-  const handleScanDevices = useCallback(async () => {
+  // Handle permission request
+  const handleRequestPermission = useCallback(async () => {
+    setIsRequestingPermission(true);
+    setPermissionError(null);
+    
+    const result = await bluetoothPermissions.requestBluetoothPermission();
+    
+    setIsRequestingPermission(false);
+    
+    if (result.granted) {
+      setShowPermissionDialog(false);
+      // Now proceed to scan devices
+      handleScanDevicesInternal();
+    } else {
+      setPermissionError(result.message || 'Izin Bluetooth ditolak');
+    }
+  }, []);
+
+  // Internal scan function (called after permissions granted)
+  const handleScanDevicesInternal = useCallback(async () => {
     setIsScanning(true);
     const result = await scanDevices();
     setIsScanning(false);
@@ -34,9 +60,32 @@ export function PrinterSettings({ autoPrint, onAutoPrintChange }: PrinterSetting
     } else if (result.success && result.devices?.length === 0) {
       toast.info('Tidak ada perangkat ditemukan. Pastikan printer sudah di-pair di pengaturan Bluetooth Android.');
     } else {
-      toast.error(result.error || 'Gagal mencari perangkat');
+      // Check if it's a permission error
+      if (result.error?.includes('permission') || result.error?.includes('denied')) {
+        setPermissionError(result.error);
+        setShowPermissionDialog(true);
+      } else {
+        toast.error(result.error || 'Gagal mencari perangkat');
+      }
     }
   }, [scanDevices]);
+
+  // Main scan handler - shows permission dialog first on Android
+  const handleScanDevices = useCallback(async () => {
+    if (isNative) {
+      // On first scan, show permission dialog to explain what we need
+      const permissionCheck = await bluetoothPermissions.checkBluetoothPermission();
+      
+      if (!permissionCheck.granted && permissionCheck.status !== 'granted') {
+        setPermissionError(null);
+        setShowPermissionDialog(true);
+        return;
+      }
+    }
+    
+    // Permissions already granted, proceed to scan
+    handleScanDevicesInternal();
+  }, [isNative, handleScanDevicesInternal]);
 
   const handleConnectDevice = useCallback(async (device: BluetoothDevice) => {
     const result = await connect(device.address);
@@ -313,6 +362,15 @@ export function PrinterSettings({ autoPrint, onAutoPrintChange }: PrinterSetting
           </p>
         )}
       </CardContent>
+
+      {/* Bluetooth Permission Dialog */}
+      <BluetoothPermissionDialog
+        open={showPermissionDialog}
+        onOpenChange={setShowPermissionDialog}
+        onRequestPermission={handleRequestPermission}
+        isRequesting={isRequestingPermission}
+        error={permissionError}
+      />
     </Card>
   );
 }
